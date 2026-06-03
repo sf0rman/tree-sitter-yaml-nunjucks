@@ -69,6 +69,7 @@ typedef enum {
     NJK_CMT_BGN,     // {#
     NJK_CMT_END,     // #}
     NJK_CONTENT,     // raw content inside {{ }} or {% %} (everything before the closer)
+    NJK_KEYWORD,     // leading identifier word inside {% %} (e.g. "if", "for", "endfor")
 
     ERR_REC,
 } TokenType;
@@ -849,6 +850,32 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
     // This avoids all the tree-sitter internal-vs-external lexer contention for expression
     // syntax tokens (identifiers, operators, etc.).
     if (is_njk_inner) {
+        // Keyword phase: emit the first identifier word inside {% %} as NJK_KEYWORD.
+        // Only valid immediately after {% (before any NJK_CONTENT has been emitted),
+        // and only for the statement context (not {{ }} interpolation or {# #} comment).
+        if (valid_symbols[NJK_KEYWORD] && valid_symbols[NJK_STMT_END]) {
+            // Skip leading whitespace (not counted in the token).
+            while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+                skp(scanner, lexer);
+            }
+            // If the next char is an identifier start, emit the word as NJK_KEYWORD.
+            int32_t c = lexer->lookahead;
+            if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
+                mrk_end(scanner, lexer);  // mark start of keyword token
+                while (true) {
+                    adv(scanner, lexer);
+                    mrk_end(scanner, lexer);
+                    c = lexer->lookahead;
+                    if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                          (c >= '0' && c <= '9') || c == '_')) {
+                        break;
+                    }
+                }
+                RET_SYM(NJK_KEYWORD);
+            }
+            // Not an identifier start — fall through to NJK_CONTENT.
+        }
+
         if (valid_symbols[NJK_CONTENT]) {
             // Consume everything until the two-char closing delimiter.
             bool has_content = false;

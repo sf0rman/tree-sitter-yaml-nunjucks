@@ -80,6 +80,13 @@
 
 ; Nunjucks template syntax
 (nunjucks_interpolation ["{{" "}}"] @punctuation.special)
-(nunjucks_statement ["{%" "%}"] @keyword)
+(nunjucks_statement ["{%" "%}"] @punctuation.special)
+((nunjucks_keyword) @keyword
+  (#any-of? @keyword
+    "if" "elif" "else" "endif"
+    "for" "endfor" "asyncEach" "endeach" "asyncAll" "endall"
+    "set" "endset" "block" "endblock" "extends" "include" "import"
+    "from" "macro" "endmacro" "call" "endcall" "filter" "endfilter"
+    "raw" "endraw" "verbatim" "endverbatim" "ignore" "missing"))
 (nunjucks_comment) @comment
 (nunjucks_expression) @embedded

@@ -73,6 +73,7 @@ module.exports = grammar({
     $._njk_cmt_bgn,     // {#
     $._njk_cmt_end,     // #}
     $._njk_content,     // raw content inside {{ }} or {% %}
+    $._njk_keyword,     // leading identifier word inside {% %} (e.g. "if", "for", "endfor")
 
     $._err_rec,
   ],
@@ -513,9 +514,11 @@ module.exports = grammar({
       seq($._njk_interp_bgn, $._njk_interp_end),
     ),
 
-    nunjucks_statement: $ => choice(
-      seq($._njk_stmt_bgn, alias($._njk_content, $.nunjucks_expression), $._njk_stmt_end),
-      seq($._njk_stmt_bgn, $._njk_stmt_end),
+    nunjucks_statement: $ => seq(
+      $._njk_stmt_bgn,
+      optional(alias($._njk_keyword, $.nunjucks_keyword)),
+      optional(alias($._njk_content, $.nunjucks_expression)),
+      $._njk_stmt_end,
     ),
 
     nunjucks_comment: $ => choice(

@@ -370,11 +370,15 @@
     "extra": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
         {
           "type": "nunjucks_expression",
+          "named": true
+        },
+        {
+          "type": "nunjucks_keyword",
           "named": true
         }
       ]
@@ -594,6 +598,10 @@
   },
   {
     "type": "nunjucks_expression",
+    "named": true
+  },
+  {
+    "type": "nunjucks_keyword",
     "named": true
   },
   {
