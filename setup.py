@@ -9,7 +9,7 @@ from wheel.bdist_wheel import bdist_wheel
 class Build(build):
     def run(self):
         if isdir("queries"):
-            dest = join(self.build_lib, "tree_sitter_yaml", "queries")
+            dest = join(self.build_lib, "tree_sitter_yaml_nunjucks", "queries")
             self.copy_tree("queries", dest)
         super().run()
 
@@ -26,15 +26,15 @@ setup(
     packages=find_packages("bindings/python"),
     package_dir={"": "bindings/python"},
     package_data={
-        "tree_sitter_yaml": ["*.pyi", "py.typed"],
-        "tree_sitter_yaml.queries": ["*.scm"],
+        "tree_sitter_yaml_nunjucks": ["*.pyi", "py.typed"],
+        "tree_sitter_yaml_nunjucks.queries": ["*.scm"],
     },
-    ext_package="tree_sitter_yaml",
+    ext_package="tree_sitter_yaml_nunjucks",
     ext_modules=[
         Extension(
             name="_binding",
             sources=[
-                "bindings/python/tree_sitter_yaml/binding.c",
+                "bindings/python/tree_sitter_yaml_nunjucks/binding.c",
                 "src/parser.c",
                 "src/scanner.c",
             ],

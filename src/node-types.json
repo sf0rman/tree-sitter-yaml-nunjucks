@@ -59,6 +59,10 @@
           {
             "type": "flow_node",
             "named": true
+          },
+          {
+            "type": "nunjucks_interpolation",
+            "named": true
           }
         ]
       },
@@ -72,6 +76,10 @@
           },
           {
             "type": "flow_node",
+            "named": true
+          },
+          {
+            "type": "nunjucks_interpolation",
             "named": true
           }
         ]
@@ -144,6 +152,10 @@
         {
           "type": "flow_node",
           "named": true
+        },
+        {
+          "type": "nunjucks_interpolation",
+          "named": true
         }
       ]
     }
@@ -162,6 +174,10 @@
         },
         {
           "type": "flow_node",
+          "named": true
+        },
+        {
+          "type": "nunjucks_interpolation",
           "named": true
         },
         {
@@ -208,6 +224,10 @@
         },
         {
           "type": "flow_pair",
+          "named": true
+        },
+        {
+          "type": "nunjucks_interpolation",
           "named": true
         }
       ]
@@ -267,6 +287,10 @@
           {
             "type": "flow_node",
             "named": true
+          },
+          {
+            "type": "nunjucks_interpolation",
+            "named": true
           }
         ]
       },
@@ -276,6 +300,10 @@
         "types": [
           {
             "type": "flow_node",
+            "named": true
+          },
+          {
+            "type": "nunjucks_interpolation",
             "named": true
           }
         ]
@@ -296,6 +324,57 @@
         },
         {
           "type": "flow_pair",
+          "named": true
+        },
+        {
+          "type": "nunjucks_interpolation",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "nunjucks_comment",
+    "named": true,
+    "extra": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "nunjucks_comment_text",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "nunjucks_interpolation",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "nunjucks_expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "nunjucks_statement",
+    "named": true,
+    "extra": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "nunjucks_expression",
           "named": true
         }
       ]
@@ -369,6 +448,7 @@
   {
     "type": "stream",
     "named": true,
+    "root": true,
     "fields": {},
     "children": {
       "multiple": true,
@@ -481,7 +561,8 @@
   },
   {
     "type": "comment",
-    "named": true
+    "named": true,
+    "extra": true
   },
   {
     "type": "directive_name",
@@ -505,6 +586,14 @@
   },
   {
     "type": "null_scalar",
+    "named": true
+  },
+  {
+    "type": "nunjucks_comment_text",
+    "named": true
+  },
+  {
+    "type": "nunjucks_expression",
     "named": true
   },
   {

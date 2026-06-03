@@ -1,5 +1,5 @@
-#ifndef TREE_SITTER_YAML_H_
-#define TREE_SITTER_YAML_H_
+#ifndef TREE_SITTER_YAML_nunjucks_H_
+#define TREE_SITTER_YAML_nunjucks_H_
 
 typedef struct TSLanguage TSLanguage;
 
@@ -7,10 +7,10 @@ typedef struct TSLanguage TSLanguage;
 extern "C" {
 #endif
 
-const TSLanguage *tree_sitter_yaml(void);
+const TSLanguage *tree_sitter_yaml_nunjucks(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // TREE_SITTER_YAML_H_
+#endif // TREE_SITTER_YAML_nunjucks_H_

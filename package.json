@@ -1,9 +1,9 @@
 {
-  "name": "@tree-sitter-grammars/tree-sitter-yaml",
+  "name": "@tree-sitter-grammars/tree-sitter-yaml-nunjucks",
   "version": "0.6.1",
   "license": "MIT",
   "description": "YAML grammar for tree-sitter",
-  "repository": "github:tree-sitter-grammars/tree-sitter-yaml",
+  "repository": "github:tree-sitter-grammars/tree-sitter-yaml-nunjucks",
   "main": "bindings/node",
   "types": "bindings/node",
   "author": {

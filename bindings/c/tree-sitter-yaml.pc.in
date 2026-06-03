@@ -2,10 +2,10 @@ prefix=@PREFIX@
 libdir=@LIBDIR@
 includedir=@INCLUDEDIR@
 
-Name: tree-sitter-yaml
+Name: tree-sitter-yaml-nunjucks
 Description: YAML grammar for tree-sitter
 URL: @URL@
 Version: @VERSION@
 Requires: @REQUIRES@
-Libs: -L${libdir} @ADDITIONAL_LIBS@ -ltree-sitter-yaml
+Libs: -L${libdir} @ADDITIONAL_LIBS@ -ltree-sitter-yaml-nunjucks
 Cflags: -I${includedir}

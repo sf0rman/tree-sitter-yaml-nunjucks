@@ -1,5 +1,6 @@
 {
-  "name": "yaml",
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "yaml_nunjucks",
   "rules": {
     "stream": {
       "type": "SEQ",
@@ -2684,6 +2685,10 @@
           },
           "named": true,
           "value": "flow_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "nunjucks_interpolation"
         }
       ]
     },
@@ -2716,6 +2721,10 @@
           },
           "named": true,
           "value": "flow_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "nunjucks_interpolation"
         }
       ]
     },
@@ -2748,6 +2757,10 @@
           },
           "named": true,
           "value": "flow_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "nunjucks_interpolation"
         }
       ]
     },
@@ -2780,6 +2793,10 @@
           },
           "named": true,
           "value": "flow_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "nunjucks_interpolation"
         }
       ]
     },
@@ -2812,6 +2829,10 @@
           },
           "named": true,
           "value": "flow_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "nunjucks_interpolation"
         }
       ]
     },
@@ -2844,6 +2865,10 @@
           },
           "named": true,
           "value": "flow_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "nunjucks_interpolation"
         }
       ]
     },
@@ -2876,6 +2901,10 @@
           },
           "named": true,
           "value": "flow_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "nunjucks_interpolation"
         }
       ]
     },
@@ -2908,6 +2937,10 @@
           },
           "named": true,
           "value": "flow_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "nunjucks_interpolation"
         }
       ]
     },
@@ -6457,12 +6490,140 @@
           "value": "anchor_name"
         }
       ]
+    },
+    "nunjucks_interpolation": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_njk_interp_bgn"
+            },
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_njk_content"
+              },
+              "named": true,
+              "value": "nunjucks_expression"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_njk_interp_end"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_njk_interp_bgn"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_njk_interp_end"
+            }
+          ]
+        }
+      ]
+    },
+    "nunjucks_statement": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_njk_stmt_bgn"
+            },
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_njk_content"
+              },
+              "named": true,
+              "value": "nunjucks_expression"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_njk_stmt_end"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_njk_stmt_bgn"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_njk_stmt_end"
+            }
+          ]
+        }
+      ]
+    },
+    "nunjucks_comment": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_njk_cmt_bgn"
+            },
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_njk_content"
+              },
+              "named": true,
+              "value": "nunjucks_comment_text"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_njk_cmt_end"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_njk_cmt_bgn"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_njk_cmt_end"
+            }
+          ]
+        }
+      ]
     }
   },
   "extras": [
     {
       "type": "SYMBOL",
       "name": "comment"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "nunjucks_statement"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "nunjucks_comment"
     }
   ],
   "conflicts": [
@@ -6519,6 +6680,65 @@
     ],
     [
       "_br_prp"
+    ],
+    [
+      "_r_blk_key_itm"
+    ],
+    [
+      "_br_blk_key_itm"
+    ],
+    [
+      "_b_blk_key_itm"
+    ],
+    [
+      "_r_blk_val_itm"
+    ],
+    [
+      "_br_blk_val_itm"
+    ],
+    [
+      "_b_blk_val_itm"
+    ],
+    [
+      "_r_prp_val",
+      "_r_blk_map_br_val"
+    ],
+    [
+      "_br_prp_val",
+      "_br_blk_map_val"
+    ],
+    [
+      "_r_flw_seq_itm",
+      "_br_flw_seq_itm",
+      "_r_sgl_flw_col_itm"
+    ],
+    [
+      "_r_flw_seq_itm",
+      "_br_flw_seq_itm"
+    ],
+    [
+      "_r_flw_map_itm",
+      "_br_flw_map_itm",
+      "_r_sgl_flw_col_itm"
+    ],
+    [
+      "_r_flw_map_itm",
+      "_br_flw_map_itm"
+    ],
+    [
+      "_blk_imp_itm_tal"
+    ],
+    [
+      "_r_blk_imp_itm",
+      "_br_blk_imp_itm"
+    ],
+    [
+      "_r_flw_imp_r_par",
+      "_br_flw_imp_r_par"
+    ],
+    [
+      "_r_flw_imp_br_par",
+      "_br_flw_imp_br_par"
     ]
   ],
   "precedences": [],
@@ -6953,6 +7173,34 @@
     },
     {
       "type": "SYMBOL",
+      "name": "_njk_interp_bgn"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_njk_interp_end"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_njk_stmt_bgn"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_njk_stmt_end"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_njk_cmt_bgn"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_njk_cmt_end"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_njk_content"
+    },
+    {
+      "type": "SYMBOL",
       "name": "_err_rec"
     }
   ],
@@ -6985,5 +7233,6 @@
     "_br_flw_njl_val_flw",
     "_r_sgl_flw_njl_val_flw"
   ],
-  "supertypes": []
+  "supertypes": [],
+  "reserved": {}
 }

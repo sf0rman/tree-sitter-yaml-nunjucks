@@ -1,0 +1,153 @@
+================================================================================
+Interpolation as block-map value
+================================================================================
+port: {{ db_port }}
+--------------------------------------------------------------------------------
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node (plain_scalar (string_scalar)))
+          value: (nunjucks_interpolation
+            (nunjucks_expression)))))))
+
+================================================================================
+Interpolation with filter
+================================================================================
+port: {{ db_port | default(5432) }}
+--------------------------------------------------------------------------------
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node (plain_scalar (string_scalar)))
+          value: (nunjucks_interpolation
+            (nunjucks_expression)))))))
+
+================================================================================
+Interpolation with member access
+================================================================================
+name: {{ feature.name }}
+--------------------------------------------------------------------------------
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node (plain_scalar (string_scalar)))
+          value: (nunjucks_interpolation
+            (nunjucks_expression)))))))
+
+================================================================================
+Interpolation as sequence item value
+================================================================================
+- name: {{ feature.name }}
+  enabled: {{ feature.enabled }}
+--------------------------------------------------------------------------------
+(stream
+  (document
+    (block_node
+      (block_sequence
+        (block_sequence_item
+          (block_node
+            (block_mapping
+              (block_mapping_pair
+                key: (flow_node (plain_scalar (string_scalar)))
+                value: (nunjucks_interpolation (nunjucks_expression)))
+              (block_mapping_pair
+                key: (flow_node (plain_scalar (string_scalar)))
+                value: (nunjucks_interpolation (nunjucks_expression))))))))))
+
+================================================================================
+Statement extras between mapping entries
+================================================================================
+{% if x %}
+environment: production
+{% else %}
+environment: development
+{% endif %}
+--------------------------------------------------------------------------------
+(stream
+  (nunjucks_statement (nunjucks_expression))
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node (plain_scalar (string_scalar)))
+          value: (flow_node (plain_scalar (string_scalar))))
+        (nunjucks_statement (nunjucks_expression))
+        (block_mapping_pair
+          key: (flow_node (plain_scalar (string_scalar)))
+          value: (flow_node (plain_scalar (string_scalar))))
+        (nunjucks_statement (nunjucks_expression))))))
+
+================================================================================
+For-loop statement
+================================================================================
+{% for feature in enabled_features %}
+value: 1
+{% endfor %}
+--------------------------------------------------------------------------------
+(stream
+  (nunjucks_statement (nunjucks_expression))
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node (plain_scalar (string_scalar)))
+          value: (flow_node (plain_scalar (integer_scalar))))
+        (nunjucks_statement (nunjucks_expression))))))
+
+================================================================================
+Nunjucks comment
+================================================================================
+{# This is a Nunjucks comment #}
+--------------------------------------------------------------------------------
+(stream
+  (nunjucks_comment
+    (nunjucks_comment_text)))
+
+================================================================================
+Regression - plain YAML flow map still parses
+================================================================================
+x: {a: 1}
+--------------------------------------------------------------------------------
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node (plain_scalar (string_scalar)))
+          value: (flow_node
+            (flow_mapping
+              (flow_pair
+                key: (flow_node (plain_scalar (string_scalar)))
+                value: (flow_node (plain_scalar (integer_scalar)))))))))))
+
+================================================================================
+Regression - plain YAML flow sequence still parses
+================================================================================
+x: [1, 2, 3]
+--------------------------------------------------------------------------------
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node (plain_scalar (string_scalar)))
+          value: (flow_node
+            (flow_sequence
+              (flow_node (plain_scalar (integer_scalar)))
+              (flow_node (plain_scalar (integer_scalar)))
+              (flow_node (plain_scalar (integer_scalar))))))))))
+
+================================================================================
+Nunjucks comment with whitespace only
+================================================================================
+{# #}
+--------------------------------------------------------------------------------
+(stream
+  (nunjucks_comment
+    (nunjucks_comment_text)))

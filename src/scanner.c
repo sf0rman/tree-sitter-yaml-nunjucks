@@ -61,6 +61,15 @@ typedef enum {
     BL,
     COMMENT,
 
+    // Nunjucks template delimiters and content (must match externals order in grammar.js)
+    NJK_INTERP_BGN,  // {{
+    NJK_INTERP_END,  // }}
+    NJK_STMT_BGN,    // {%
+    NJK_STMT_END,    // %}
+    NJK_CMT_BGN,     // {#
+    NJK_CMT_END,     // #}
+    NJK_CONTENT,     // raw content inside {{ }} or {% %} (everything before the closer)
+
     ERR_REC,
 } TokenType;
 
@@ -314,6 +323,13 @@ static inline bool is_ns_tag_char(int32_t c) {
 }
 
 static inline bool is_ns_anchor_char(int32_t c) { return is_ns_char(c) && !is_c_flow_indicator(c); }
+
+// Peek one char ahead (advance without mrk_end) and return it.
+// Safe to call when the caller will either emit a token or return false/break.
+static inline int32_t njk_peek(TSLexer *lexer) {
+    lexer->advance(lexer, false);
+    return lexer->lookahead;
+}
 
 static char scn_uri_esc(Scanner *scanner, TSLexer *lexer) {
     if (lexer->lookahead != '%') {
@@ -815,13 +831,67 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
     init(scanner);
     mrk_end(scanner, lexer);
 
+    // Disable YAML comment scanning when inside quoted scalars or nunjucks constructs
     bool allow_comment = !(valid_symbols[R_DQT_STR_CTN] || valid_symbols[BR_DQT_STR_CTN] ||
-                           valid_symbols[R_SQT_STR_CTN] || valid_symbols[BR_SQT_STR_CTN]);
+                           valid_symbols[R_SQT_STR_CTN] || valid_symbols[BR_SQT_STR_CTN] ||
+                           valid_symbols[NJK_INTERP_END] || valid_symbols[NJK_STMT_END] ||
+                           valid_symbols[NJK_CMT_END]);
     int16_t *ind_ptr = scanner->ind_len_stk.contents + scanner->ind_len_stk.size - 1;
     int16_t *ind_end = scanner->ind_len_stk.contents - 1;
     int16_t cur_ind = *ind_ptr--;
     int16_t prt_ind = ind_ptr == ind_end ? -1 : *ind_ptr;
     int16_t cur_ind_typ = *array_back(&scanner->ind_typ_stk);
+
+    bool is_njk_inner = valid_symbols[NJK_INTERP_END] || valid_symbols[NJK_STMT_END] || valid_symbols[NJK_CMT_END];
+
+    // When inside a nunjucks construct ({{ }}, {% %}, {# #}):
+    // Emit NJK_CONTENT (raw text until the closing delimiter), then the closing delimiter.
+    // This avoids all the tree-sitter internal-vs-external lexer contention for expression
+    // syntax tokens (identifiers, operators, etc.).
+    if (is_njk_inner) {
+        if (valid_symbols[NJK_CONTENT]) {
+            // Consume everything until the two-char closing delimiter.
+            bool has_content = false;
+            while (lexer->lookahead != 0) {
+                int32_t c = lexer->lookahead;
+                // Peek for two-char closers
+                if ((c == '}' && valid_symbols[NJK_INTERP_END]) ||
+                    (c == '%' && valid_symbols[NJK_STMT_END]) ||
+                    (c == '#' && valid_symbols[NJK_CMT_END])) {
+                    break; // Stop before the closing delimiter
+                }
+                if (c == '}' || c == '%' || c == '#') {
+                    // Could be part of a closer — peek ahead
+                    adv(scanner, lexer);
+                    if (lexer->lookahead == '}') {
+                        // Found '}}'  or '%}' or '#}' — back up
+                        break;
+                    }
+                    mrk_end(scanner, lexer);
+                    has_content = true;
+                    continue;
+                }
+                adv(scanner, lexer);
+                mrk_end(scanner, lexer);
+                has_content = true;
+            }
+            if (has_content) {
+                RET_SYM(NJK_CONTENT);
+            }
+            return false;
+        }
+        // NJK_CONTENT already consumed — now handle the closing delimiter
+        mrk_end(scanner, lexer);
+        int32_t lk = lexer->lookahead;
+        bool is_closing =
+            (lk == '}' && valid_symbols[NJK_INTERP_END]) ||
+            (lk == '%' && valid_symbols[NJK_STMT_END]) ||
+            (lk == '#' && valid_symbols[NJK_CMT_END]);
+        if (!is_closing) {
+            return false;
+        }
+        // Fall through to the main dispatch for the closing delimiter
+    }
 
     bool has_tab_ind = false;
     int16_t leading_spaces = 0;
@@ -926,7 +996,15 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
     }
 
     if (lexer->lookahead == '%') {
-        if (valid_symbols[S_DIR_YML_BGN] && is_s) {
+        if (valid_symbols[NJK_STMT_END]) {
+            // Nunjucks: %} closes a statement tag
+            adv(scanner, lexer);
+            if (lexer->lookahead == '}') {
+                adv(scanner, lexer);
+                mrk_end(scanner, lexer);
+                RET_SYM(NJK_STMT_END);
+            }
+        } else if (valid_symbols[S_DIR_YML_BGN] && is_s) {
             return scn_dir_bgn(scanner, lexer);
         }
     } else if (lexer->lookahead == '*') {
@@ -1004,39 +1082,107 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             RET_SYM(BR_FLW_SEQ_END)
         }
     } else if (lexer->lookahead == '{') {
-        if (valid_symbols[R_FLW_MAP_BGN] && is_r) {
-            MAY_UPD_IMP_COL();
-            adv(scanner, lexer);
+        // Check for nunjucks opening delimiters: {{ {% {#
+        // Use njk_peek to look at the second char without committing — if we don't emit a
+        // nunjucks token we must not have advanced, so we check valid_symbols first.
+        bool want_njk = valid_symbols[NJK_INTERP_BGN] || valid_symbols[NJK_STMT_BGN] || valid_symbols[NJK_CMT_BGN];
+        if (want_njk) {
+            int32_t second = njk_peek(lexer); // advances past first '{', no mrk_end
+            if (second == '{' && valid_symbols[NJK_INTERP_BGN]) {
+                adv(scanner, lexer); // consume second '{'
+                mrk_end(scanner, lexer);
+                RET_SYM(NJK_INTERP_BGN);
+            }
+            if (second == '%' && valid_symbols[NJK_STMT_BGN]) {
+                adv(scanner, lexer); // consume '%'
+                mrk_end(scanner, lexer);
+                RET_SYM(NJK_STMT_BGN);
+            }
+            if (second == '#' && valid_symbols[NJK_CMT_BGN]) {
+                adv(scanner, lexer); // consume '#'
+                mrk_end(scanner, lexer);
+                RET_SYM(NJK_CMT_BGN);
+            }
+            // Second char wasn't a nunjucks opener. We already advanced past the first '{'.
+            // Now we must handle as a flow-map-begin (already advanced, cannot undo).
+            if (valid_symbols[R_FLW_MAP_BGN] && is_r) {
+                MAY_UPD_IMP_COL();
+                mrk_end(scanner, lexer);
+                RET_SYM(R_FLW_MAP_BGN)
+            }
+            if (valid_symbols[BR_FLW_MAP_BGN] && is_br) {
+                MAY_UPD_IMP_COL();
+                mrk_end(scanner, lexer);
+                RET_SYM(BR_FLW_MAP_BGN)
+            }
+            if (valid_symbols[B_FLW_MAP_BGN] && is_b) {
+                MAY_UPD_IMP_COL();
+                mrk_end(scanner, lexer);
+                RET_SYM(B_FLW_MAP_BGN)
+            }
+            // Nothing matched — but we advanced. Mark end to prevent corrupt state,
+            // then fall through to plain-scalar (cur_col - bgn_col == 1, which is handled).
             mrk_end(scanner, lexer);
-            RET_SYM(R_FLW_MAP_BGN)
-        }
-        if (valid_symbols[BR_FLW_MAP_BGN] && is_br) {
-            MAY_UPD_IMP_COL();
-            adv(scanner, lexer);
-            mrk_end(scanner, lexer);
-            RET_SYM(BR_FLW_MAP_BGN)
-        }
-        if (valid_symbols[B_FLW_MAP_BGN] && is_b) {
-            MAY_UPD_IMP_COL();
-            adv(scanner, lexer);
-            mrk_end(scanner, lexer);
-            RET_SYM(B_FLW_MAP_BGN)
+        } else {
+            // No nunjucks token expected — original flow-map logic unmodified.
+            if (valid_symbols[R_FLW_MAP_BGN] && is_r) {
+                MAY_UPD_IMP_COL();
+                adv(scanner, lexer);
+                mrk_end(scanner, lexer);
+                RET_SYM(R_FLW_MAP_BGN)
+            }
+            if (valid_symbols[BR_FLW_MAP_BGN] && is_br) {
+                MAY_UPD_IMP_COL();
+                adv(scanner, lexer);
+                mrk_end(scanner, lexer);
+                RET_SYM(BR_FLW_MAP_BGN)
+            }
+            if (valid_symbols[B_FLW_MAP_BGN] && is_b) {
+                MAY_UPD_IMP_COL();
+                adv(scanner, lexer);
+                mrk_end(scanner, lexer);
+                RET_SYM(B_FLW_MAP_BGN)
+            }
         }
     } else if (lexer->lookahead == '}') {
-        if (valid_symbols[R_FLW_MAP_END] && is_r) {
+        // Nunjucks: }} closes an interpolation (checked before flow-map-end)
+        if (valid_symbols[NJK_INTERP_END]) {
             adv(scanner, lexer);
+            if (lexer->lookahead == '}') {
+                adv(scanner, lexer);
+                mrk_end(scanner, lexer);
+                RET_SYM(NJK_INTERP_END);
+            }
+            // Only one '}' — flow map end
             mrk_end(scanner, lexer);
-            RET_SYM(R_FLW_MAP_END)
+            if (valid_symbols[R_FLW_MAP_END] && is_r) RET_SYM(R_FLW_MAP_END)
+            if (valid_symbols[BR_FLW_MAP_END] && is_br) RET_SYM(BR_FLW_MAP_END)
+            if (valid_symbols[B_FLW_MAP_END] && is_b) RET_SYM(BR_FLW_MAP_END)
+        } else {
+            if (valid_symbols[R_FLW_MAP_END] && is_r) {
+                adv(scanner, lexer);
+                mrk_end(scanner, lexer);
+                RET_SYM(R_FLW_MAP_END)
+            }
+            if (valid_symbols[BR_FLW_MAP_END] && is_br) {
+                adv(scanner, lexer);
+                mrk_end(scanner, lexer);
+                RET_SYM(BR_FLW_MAP_END)
+            }
+            if (valid_symbols[B_FLW_MAP_END] && is_b) {
+                adv(scanner, lexer);
+                mrk_end(scanner, lexer);
+                RET_SYM(BR_FLW_MAP_END)
+            }
         }
-        if (valid_symbols[BR_FLW_MAP_END] && is_br) {
+    } else if (lexer->lookahead == '#' && valid_symbols[NJK_CMT_END]) {
+        // Nunjucks: #} closes a comment tag (allow_comment is false when NJK_CMT_END is valid,
+        // so # was not consumed as a YAML comment in the whitespace loop above)
+        adv(scanner, lexer);
+        if (lexer->lookahead == '}') {
             adv(scanner, lexer);
             mrk_end(scanner, lexer);
-            RET_SYM(BR_FLW_MAP_END)
-        }
-        if (valid_symbols[B_FLW_MAP_END] && is_b) {
-            adv(scanner, lexer);
-            mrk_end(scanner, lexer);
-            RET_SYM(BR_FLW_MAP_END)
+            RET_SYM(NJK_CMT_END);
         }
     } else if (lexer->lookahead == ',') {
         if (valid_symbols[R_FLW_SEP_BGN] && is_r) {
@@ -1375,30 +1521,30 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
     return !valid_symbols[ERR_REC];
 }
 
-void *tree_sitter_yaml_external_scanner_create() {
+void *tree_sitter_yaml_nunjucks_external_scanner_create() {
     Scanner *scanner = ts_calloc(1, sizeof(Scanner));
     deserialize(scanner, NULL, 0);
     return scanner;
 }
 
-void tree_sitter_yaml_external_scanner_destroy(void *payload) {
+void tree_sitter_yaml_nunjucks_external_scanner_destroy(void *payload) {
     Scanner *scanner = (Scanner *)payload;
     array_delete(&scanner->ind_len_stk);
     array_delete(&scanner->ind_typ_stk);
     ts_free(scanner);
 }
 
-unsigned tree_sitter_yaml_external_scanner_serialize(void *payload, char *buffer) {
+unsigned tree_sitter_yaml_nunjucks_external_scanner_serialize(void *payload, char *buffer) {
     Scanner *scanner = (Scanner *)payload;
     return serialize(scanner, buffer);
 }
 
-void tree_sitter_yaml_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {
+void tree_sitter_yaml_nunjucks_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {
     Scanner *scanner = (Scanner *)payload;
     deserialize(scanner, buffer, length);
 }
 
-bool tree_sitter_yaml_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
+bool tree_sitter_yaml_nunjucks_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
     Scanner *scanner = (Scanner *)payload;
     return scan(scanner, lexer, valid_symbols);
 }

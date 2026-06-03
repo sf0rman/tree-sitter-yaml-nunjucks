@@ -1,6 +1,6 @@
 VERSION := 0.6.1
 
-LANGUAGE_NAME := tree-sitter-yaml
+LANGUAGE_NAME := tree-sitter-yaml-nunjucks
 
 # repository
 SRC_DIR := src

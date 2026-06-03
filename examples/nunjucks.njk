@@ -1,0 +1,77 @@
+# Example YAML + Nunjucks + CloudFormation + OrgFormation
+# Demonstrates syntax highlighting for mixed templates
+
+# Top-level Nunjucks conditional
+{% if deploy_to_production %}
+environment: production
+replicas: 10
+enable_monitoring: true
+{% else %}
+environment: development
+replicas: 1
+enable_monitoring: false
+{% endif %}
+
+# Basic Nunjucks templating
+database:
+  host: "{{ db_host }}"
+  port: {{ db_port | default(5432) }}
+  name: "my_app_{{ environment }}"
+
+# Nunjucks loops
+features:
+  {% for feature in enabled_features %}
+  - name: {{ feature.name }}
+    enabled: {{ feature.enabled }}
+  {% endfor %}
+
+{# This is a Nunjucks comment #}
+
+# CloudFormation + OrgFormation + Nunjucks mixed example
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "{{ stack_description }}"
+
+Resources:
+  # AWS S3 Bucket with CloudFormation intrinsics and Nunjucks
+  StorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "{{ bucket_prefix }}-${AWS::AccountId}"
+      Tags:
+        - Key: Environment
+          Value: {{ environment }}
+        - Key: Region
+          Value: {{ primary_region }}
+
+  # Conditional Lambda with Nunjucks
+  {% if enable_lambda %}
+  ProcessorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${EnvironmentName}-processor"
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref StorageBucket
+          DEBUG_MODE: "{{ debug_mode | default('false') }}"
+  {% endif %}
+
+  # AWS IAM Role
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+Outputs:
+  BucketArn:
+    Value: !GetAtt StorageBucket.Arn
+    Export:
+      Name: !Sub "{{ stack_prefix }}-bucket-arn"

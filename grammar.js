@@ -7,7 +7,7 @@
 /// <reference types="tree-sitter-cli/dsl" />
 
 module.exports = grammar({
-  name: "yaml",
+  name: "yaml_nunjucks",
 
   externals: $ => [
     $._eof,
@@ -65,10 +65,19 @@ module.exports = grammar({
     $._bl,
     $.comment,
 
+    // Nunjucks template delimiters and content (order must match TokenType enum in scanner.c)
+    $._njk_interp_bgn,  // {{
+    $._njk_interp_end,  // }}
+    $._njk_stmt_bgn,    // {%
+    $._njk_stmt_end,    // %}
+    $._njk_cmt_bgn,     // {#
+    $._njk_cmt_end,     // #}
+    $._njk_content,     // raw content inside {{ }} or {% %}
+
     $._err_rec,
   ],
 
-  extras: $ => [$.comment],
+  extras: $ => [$.comment, $.nunjucks_statement, $.nunjucks_comment],
 
   conflicts: $ => [
     [$._r_prp, $._r_sgl_prp],
@@ -97,6 +106,26 @@ module.exports = grammar({
      */
     [$._r_prp],
     [$._br_prp],
+
+    // Nunjucks: {{ after a block structural token — is it content or a new construct?
+    [$._r_blk_key_itm],
+    [$._br_blk_key_itm],
+    [$._b_blk_key_itm],
+    [$._r_blk_val_itm],
+    [$._br_blk_val_itm],
+    [$._b_blk_val_itm],
+    [$._r_prp_val, $._r_blk_map_br_val],
+    [$._br_prp_val, $._br_blk_map_val],
+
+    // Nunjucks: sgl-vs-general flow item conflicts (mirroring _r_pln_flw_val pattern)
+    [$._r_flw_seq_itm, $._br_flw_seq_itm, $._r_sgl_flw_col_itm],
+    [$._r_flw_seq_itm, $._br_flw_seq_itm],
+    [$._r_flw_map_itm, $._br_flw_map_itm, $._r_sgl_flw_col_itm],
+    [$._r_flw_map_itm, $._br_flw_map_itm],
+    [$._blk_imp_itm_tal],
+    [$._r_blk_imp_itm, $._br_blk_imp_itm],
+    [$._r_flw_imp_r_par, $._br_flw_imp_r_par],
+    [$._r_flw_imp_br_par, $._br_flw_imp_br_par],
   ],
 
   inline: $ => [
@@ -278,19 +307,19 @@ module.exports = grammar({
 
     // non-json-like flow value in block
 
-    _r_flw_njl_val_blk: $ => choice($._r_als_val, $._r_prp_val, $._r_pln_blk_val),
-    _br_flw_njl_val_blk: $ => choice($._br_als_val, $._br_prp_val, $._br_pln_blk_val),
+    _r_flw_njl_val_blk: $ => choice($._r_als_val, $._r_prp_val, $._r_pln_blk_val, $.nunjucks_interpolation),
+    _br_flw_njl_val_blk: $ => choice($._br_als_val, $._br_prp_val, $._br_pln_blk_val, $.nunjucks_interpolation),
 
-    _r_sgl_flw_njl_val_blk: $ => choice($._r_als_val, $._r_sgl_prp_val, $._r_sgl_pln_blk_val),
-    _br_sgl_flw_njl_val_blk: $ => choice($._br_als_val, $._br_sgl_prp_val, $._br_sgl_pln_blk_val),
-    _b_sgl_flw_njl_val_blk: $ => choice($._b_als_val, $._b_sgl_prp_val, $._b_sgl_pln_blk_val),
+    _r_sgl_flw_njl_val_blk: $ => choice($._r_als_val, $._r_sgl_prp_val, $._r_sgl_pln_blk_val, $.nunjucks_interpolation),
+    _br_sgl_flw_njl_val_blk: $ => choice($._br_als_val, $._br_sgl_prp_val, $._br_sgl_pln_blk_val, $.nunjucks_interpolation),
+    _b_sgl_flw_njl_val_blk: $ => choice($._b_als_val, $._b_sgl_prp_val, $._b_sgl_pln_blk_val, $.nunjucks_interpolation),
 
     // non-json-like flow value in flow
 
-    _r_flw_njl_val_flw: $ => choice($._r_als_val, $._r_prp_val, $._r_pln_flw_val),
-    _br_flw_njl_val_flw: $ => choice($._br_als_val, $._br_prp_val, $._br_pln_flw_val),
+    _r_flw_njl_val_flw: $ => choice($._r_als_val, $._r_prp_val, $._r_pln_flw_val, $.nunjucks_interpolation),
+    _br_flw_njl_val_flw: $ => choice($._br_als_val, $._br_prp_val, $._br_pln_flw_val, $.nunjucks_interpolation),
 
-    _r_sgl_flw_njl_val_flw: $ => choice($._r_als_val, $._r_sgl_prp_val, $._r_sgl_pln_flw_val),
+    _r_sgl_flw_njl_val_flw: $ => choice($._r_als_val, $._r_sgl_prp_val, $._r_sgl_pln_flw_val, $.nunjucks_interpolation),
 
     // flow sequence
 
@@ -474,6 +503,28 @@ module.exports = grammar({
     _r_acr: $ => seq($._r_acr_bgn, $._r_acr_ctn),
     _br_acr: $ => seq($._br_acr_bgn, $._r_acr_ctn),
     _b_acr: $ => seq($._b_acr_bgn, $._r_acr_ctn),
+
+    // ===== Nunjucks template support =====
+
+    // Top-level constructs: interpolation (value), statement/comment (extras).
+    // Delimiters are external tokens; content is also external (raw text from scanner).
+    nunjucks_interpolation: $ => choice(
+      seq($._njk_interp_bgn, alias($._njk_content, $.nunjucks_expression), $._njk_interp_end),
+      seq($._njk_interp_bgn, $._njk_interp_end),
+    ),
+
+    nunjucks_statement: $ => choice(
+      seq($._njk_stmt_bgn, alias($._njk_content, $.nunjucks_expression), $._njk_stmt_end),
+      seq($._njk_stmt_bgn, $._njk_stmt_end),
+    ),
+
+    nunjucks_comment: $ => choice(
+      seq($._njk_cmt_bgn, alias($._njk_content, $.nunjucks_comment_text), $._njk_cmt_end),
+      seq($._njk_cmt_bgn, $._njk_cmt_end),
+    ),
+
+    // Note: expression content is handled by the scanner as raw NJK_CONTENT tokens.
+    // The content is aliased to nunjucks_expression in interpolation/statement nodes.
   },
 });
 
@@ -607,7 +658,14 @@ function recursive_alias(rule, alias_map, checklist) {
       }
     case "BLANK":
     case "ALIAS":
+    case "TOKEN":
+    case "IMMEDIATE_TOKEN":
+    case "STRING":
+    case "PATTERN":
       return rule;
+    case "PREC_LEFT":
+    case "PREC_DYNAMIC":
+      return { ...rule, content: recursive_alias(rule.content, alias_map, checklist) };
     default:
       throw new Error(`Unexpected rule type ${JSON.stringify(rule.type)}`);
   }

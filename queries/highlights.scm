@@ -77,3 +77,9 @@
   "---"
   "..."
 ] @punctuation.special
+
+; Nunjucks template syntax
+(nunjucks_interpolation ["{{" "}}"] @punctuation.special)
+(nunjucks_statement ["{%" "%}"] @keyword)
+(nunjucks_comment) @comment
+(nunjucks_expression) @embedded
