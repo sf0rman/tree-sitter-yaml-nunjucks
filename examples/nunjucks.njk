@@ -75,3 +75,23 @@ Outputs:
     Value: !GetAtt StorageBucket.Arn
     Export:
       Name: !Sub "{{ stack_prefix }}-bucket-arn"
+
+Something:
+    Tags:
+       - Hello
+{% for arn in policyArns %}
+       - !Sub {{ arn }}
+{% endfor %}
+    VpcConfig:
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      SubnetIds: !Ref subnetIds
+      Environment:
+        Variables:
+          {% for name, value in environment %}
+            {% if value !== "" %}
+              "{{ name }}": !Sub "{{ value }}"
+            {% else %}
+              "{{ name }}": ""
+            {% endif %}
+          {% endfor %}

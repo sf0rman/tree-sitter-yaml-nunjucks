@@ -79,14 +79,19 @@
 ] @punctuation.special
 
 ; Nunjucks template syntax
-(nunjucks_interpolation ["{{" "}}"] @punctuation.special)
-(nunjucks_statement ["{%" "%}"] @punctuation.special)
+(nunjucks_interpolation) @punctuation.special
+(nunjucks_statement) @punctuation.special
+; nunjucks_keyword captures the first word of {% %} statements.
+; "in" and other mid-statement words appear in nunjucks_expression (@embedded) —
+; editors may highlight them via a secondary injection or regex scope.
 ((nunjucks_keyword) @keyword
   (#any-of? @keyword
     "if" "elif" "else" "endif"
     "for" "endfor" "asyncEach" "endeach" "asyncAll" "endall"
+    "in"
     "set" "endset" "block" "endblock" "extends" "include" "import"
     "from" "macro" "endmacro" "call" "endcall" "filter" "endfilter"
-    "raw" "endraw" "verbatim" "endverbatim" "ignore" "missing"))
+    "raw" "endraw" "verbatim" "endverbatim" "ignore" "missing"
+    "recursive" "as" "with" "context" "endwith"))
 (nunjucks_comment) @comment
 (nunjucks_expression) @embedded

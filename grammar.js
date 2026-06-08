@@ -92,6 +92,12 @@ module.exports = grammar({
     [$._r_flw_exp_par, $._r_sgl_flw_exp_par],
     [$._r_dqt_str, $._r_sgl_dqt_str],
     [$._r_sqt_str, $._r_sgl_sqt_str],
+    [$._r_dqt_str, $._r_sgl_dqt_str, $._br_mtl_dqt_ctn],
+    [$._r_sqt_str, $._r_sgl_sqt_str, $._br_mtl_sqt_ctn],
+    [$._r_dqt_str, $._br_mtl_dqt_ctn],
+    [$._r_sqt_str, $._br_mtl_sqt_ctn],
+    [$._br_mtl_dqt_ctn],
+    [$._br_mtl_sqt_ctn],
     [$._r_pln_flw_val, $._r_sgl_pln_flw_val],
 
     /**
@@ -115,8 +121,10 @@ module.exports = grammar({
     [$._r_blk_val_itm],
     [$._br_blk_val_itm],
     [$._b_blk_val_itm],
-    [$._r_prp_val, $._r_blk_map_br_val],
-    [$._br_prp_val, $._br_blk_map_val],
+    [$._r_prp_val, $._r_blk_map_br_val, $._blk_seq_itm_tal],
+    [$._r_prp_val, $._r_blk_map_br_val, $._blk_imp_itm_tal],
+    [$._br_prp_val, $._br_blk_map_val, $._blk_seq_itm_tal],
+    [$._br_prp_val, $._br_blk_map_val, $._blk_imp_itm_tal],
 
     // Nunjucks: sgl-vs-general flow item conflicts (mirroring _r_pln_flw_val pattern)
     [$._r_flw_seq_itm, $._br_flw_seq_itm, $._r_sgl_flw_col_itm],
@@ -308,19 +316,19 @@ module.exports = grammar({
 
     // non-json-like flow value in block
 
-    _r_flw_njl_val_blk: $ => choice($._r_als_val, $._r_prp_val, $._r_pln_blk_val, $.nunjucks_interpolation),
-    _br_flw_njl_val_blk: $ => choice($._br_als_val, $._br_prp_val, $._br_pln_blk_val, $.nunjucks_interpolation),
+    _r_flw_njl_val_blk: $ => choice($._r_als_val, $._r_prp_val, $._r_pln_blk_val, $.nunjucks_interpolation, seq($._r_prp, $.nunjucks_interpolation)),
+    _br_flw_njl_val_blk: $ => choice($._br_als_val, $._br_prp_val, $._br_pln_blk_val, $.nunjucks_interpolation, seq($._br_prp, $.nunjucks_interpolation)),
 
-    _r_sgl_flw_njl_val_blk: $ => choice($._r_als_val, $._r_sgl_prp_val, $._r_sgl_pln_blk_val, $.nunjucks_interpolation),
-    _br_sgl_flw_njl_val_blk: $ => choice($._br_als_val, $._br_sgl_prp_val, $._br_sgl_pln_blk_val, $.nunjucks_interpolation),
-    _b_sgl_flw_njl_val_blk: $ => choice($._b_als_val, $._b_sgl_prp_val, $._b_sgl_pln_blk_val, $.nunjucks_interpolation),
+    _r_sgl_flw_njl_val_blk: $ => choice($._r_als_val, $._r_sgl_prp_val, $._r_sgl_pln_blk_val, $.nunjucks_interpolation, seq($._r_sgl_prp, $.nunjucks_interpolation)),
+    _br_sgl_flw_njl_val_blk: $ => choice($._br_als_val, $._br_sgl_prp_val, $._br_sgl_pln_blk_val, $.nunjucks_interpolation, seq($._br_sgl_prp, $.nunjucks_interpolation)),
+    _b_sgl_flw_njl_val_blk: $ => choice($._b_als_val, $._b_sgl_prp_val, $._b_sgl_pln_blk_val, $.nunjucks_interpolation, seq($._b_sgl_prp, $.nunjucks_interpolation)),
 
     // non-json-like flow value in flow
 
-    _r_flw_njl_val_flw: $ => choice($._r_als_val, $._r_prp_val, $._r_pln_flw_val, $.nunjucks_interpolation),
-    _br_flw_njl_val_flw: $ => choice($._br_als_val, $._br_prp_val, $._br_pln_flw_val, $.nunjucks_interpolation),
+    _r_flw_njl_val_flw: $ => choice($._r_als_val, $._r_prp_val, $._r_pln_flw_val, $.nunjucks_interpolation, seq($._r_prp, $.nunjucks_interpolation)),
+    _br_flw_njl_val_flw: $ => choice($._br_als_val, $._br_prp_val, $._br_pln_flw_val, $.nunjucks_interpolation, seq($._br_prp, $.nunjucks_interpolation)),
 
-    _r_sgl_flw_njl_val_flw: $ => choice($._r_als_val, $._r_sgl_prp_val, $._r_sgl_pln_flw_val, $.nunjucks_interpolation),
+    _r_sgl_flw_njl_val_flw: $ => choice($._r_als_val, $._r_sgl_prp_val, $._r_sgl_pln_flw_val, $.nunjucks_interpolation, seq($._r_sgl_prp, $.nunjucks_interpolation)),
 
     // flow sequence
 
@@ -425,15 +433,15 @@ module.exports = grammar({
     _br_sgl_dqt_str_val: $ => choice($._br_sgl_dqt_str, seq($._br_sgl_prp, $._r_sgl_dqt_str)),
     _b_sgl_dqt_str_val: $ => choice($._b_sgl_dqt_str, seq($._b_sgl_prp, $._r_sgl_dqt_str)),
 
-    _r_dqt_str: $ => seq($._r_dqt_str_bgn, optional($._r_sgl_dqt_ctn), optional($._r_dqt_esc_nwl), repeat($._br_mtl_dqt_ctn), choice($._r_dqt_str_end, $._br_dqt_str_end)),
-    _br_dqt_str: $ => seq($._br_dqt_str_bgn, optional($._r_sgl_dqt_ctn), optional($._r_dqt_esc_nwl), repeat($._br_mtl_dqt_ctn), choice($._r_dqt_str_end, $._br_dqt_str_end)),
+    _r_dqt_str: $ => seq($._r_dqt_str_bgn, repeat(choice($._r_dqt_str_ctn, $._r_dqt_esc_seq, $.nunjucks_interpolation)), optional($._r_dqt_esc_nwl), repeat($._br_mtl_dqt_ctn), choice($._r_dqt_str_end, $._br_dqt_str_end)),
+    _br_dqt_str: $ => seq($._br_dqt_str_bgn, repeat(choice($._r_dqt_str_ctn, $._r_dqt_esc_seq, $.nunjucks_interpolation)), optional($._r_dqt_esc_nwl), repeat($._br_mtl_dqt_ctn), choice($._r_dqt_str_end, $._br_dqt_str_end)),
 
-    _r_sgl_dqt_str: $ => seq($._r_dqt_str_bgn, optional($._r_sgl_dqt_ctn), $._r_dqt_str_end),
-    _br_sgl_dqt_str: $ => seq($._br_dqt_str_bgn, optional($._r_sgl_dqt_ctn), $._r_dqt_str_end),
-    _b_sgl_dqt_str: $ => seq($._b_dqt_str_bgn, optional($._r_sgl_dqt_ctn), $._r_dqt_str_end),
+    _r_sgl_dqt_str: $ => seq($._r_dqt_str_bgn, repeat(choice($._r_dqt_str_ctn, $._r_dqt_esc_seq, $.nunjucks_interpolation)), $._r_dqt_str_end),
+    _br_sgl_dqt_str: $ => seq($._br_dqt_str_bgn, repeat(choice($._r_dqt_str_ctn, $._r_dqt_esc_seq, $.nunjucks_interpolation)), $._r_dqt_str_end),
+    _b_sgl_dqt_str: $ => seq($._b_dqt_str_bgn, repeat(choice($._r_dqt_str_ctn, $._r_dqt_esc_seq, $.nunjucks_interpolation)), $._r_dqt_str_end),
 
-    _r_sgl_dqt_ctn: $ => repeat1(choice($._r_dqt_str_ctn, $._r_dqt_esc_seq)),
-    _br_mtl_dqt_ctn: $ => choice($._br_dqt_esc_nwl, seq(choice($._br_dqt_str_ctn, $._br_dqt_esc_seq), repeat(choice($._r_dqt_str_ctn, $._r_dqt_esc_seq)), optional($._r_dqt_esc_nwl))),
+    _r_sgl_dqt_ctn: $ => repeat1(choice($._r_dqt_str_ctn, $._r_dqt_esc_seq, $.nunjucks_interpolation)),
+    _br_mtl_dqt_ctn: $ => choice($._br_dqt_esc_nwl, seq(choice($._br_dqt_str_ctn, $._br_dqt_esc_seq, $.nunjucks_interpolation), repeat(choice($._r_dqt_str_ctn, $._r_dqt_esc_seq, $.nunjucks_interpolation)), optional($._r_dqt_esc_nwl))),
 
     // single quote scalar
 
@@ -444,15 +452,15 @@ module.exports = grammar({
     _br_sgl_sqt_str_val: $ => choice($._br_sgl_sqt_str, seq($._br_sgl_prp, $._r_sgl_sqt_str)),
     _b_sgl_sqt_str_val: $ => choice($._b_sgl_sqt_str, seq($._b_sgl_prp, $._r_sgl_sqt_str)),
 
-    _r_sqt_str: $ => seq($._r_sqt_str_bgn, optional($._r_sgl_sqt_ctn), repeat($._br_mtl_sqt_ctn), choice($._r_sqt_str_end, $._br_sqt_str_end)),
-    _br_sqt_str: $ => seq($._br_sqt_str_bgn, optional($._r_sgl_sqt_ctn), repeat($._br_mtl_sqt_ctn), choice($._r_sqt_str_end, $._br_sqt_str_end)),
+    _r_sqt_str: $ => seq($._r_sqt_str_bgn, repeat(choice($._r_sqt_str_ctn, $._r_sqt_esc_sqt, $.nunjucks_interpolation)), repeat($._br_mtl_sqt_ctn), choice($._r_sqt_str_end, $._br_sqt_str_end)),
+    _br_sqt_str: $ => seq($._br_sqt_str_bgn, repeat(choice($._r_sqt_str_ctn, $._r_sqt_esc_sqt, $.nunjucks_interpolation)), repeat($._br_mtl_sqt_ctn), choice($._r_sqt_str_end, $._br_sqt_str_end)),
 
-    _r_sgl_sqt_str: $ => seq($._r_sqt_str_bgn, optional($._r_sgl_sqt_ctn), $._r_sqt_str_end),
-    _br_sgl_sqt_str: $ => seq($._br_sqt_str_bgn, optional($._r_sgl_sqt_ctn), $._r_sqt_str_end),
-    _b_sgl_sqt_str: $ => seq($._b_sqt_str_bgn, optional($._r_sgl_sqt_ctn), $._r_sqt_str_end),
+    _r_sgl_sqt_str: $ => seq($._r_sqt_str_bgn, repeat(choice($._r_sqt_str_ctn, $._r_sqt_esc_sqt, $.nunjucks_interpolation)), $._r_sqt_str_end),
+    _br_sgl_sqt_str: $ => seq($._br_sqt_str_bgn, repeat(choice($._r_sqt_str_ctn, $._r_sqt_esc_sqt, $.nunjucks_interpolation)), $._r_sqt_str_end),
+    _b_sgl_sqt_str: $ => seq($._b_sqt_str_bgn, repeat(choice($._r_sqt_str_ctn, $._r_sqt_esc_sqt, $.nunjucks_interpolation)), $._r_sqt_str_end),
 
-    _r_sgl_sqt_ctn: $ => repeat1(choice($._r_sqt_str_ctn, $._r_sqt_esc_sqt)),
-    _br_mtl_sqt_ctn: $ => seq(choice($._br_sqt_str_ctn, $._br_sqt_esc_sqt), repeat(choice($._r_sqt_str_ctn, $._r_sqt_esc_sqt))),
+    _r_sgl_sqt_ctn: $ => repeat1(choice($._r_sqt_str_ctn, $._r_sqt_esc_sqt, $.nunjucks_interpolation)),
+    _br_mtl_sqt_ctn: $ => seq(choice($._br_sqt_str_ctn, $._br_sqt_esc_sqt, $.nunjucks_interpolation), repeat(choice($._r_sqt_str_ctn, $._r_sqt_esc_sqt, $.nunjucks_interpolation))),
 
     // plain scalar in block
 

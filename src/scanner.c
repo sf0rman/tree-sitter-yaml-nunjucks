@@ -148,6 +148,7 @@ typedef struct {
     int16_t blk_imp_row;
     int16_t blk_imp_col;
     int16_t blk_imp_tab;
+    int16_t njk_depth; // >0 when inside {{ }} or {% %} or {# #}
     Array(int16_t) ind_typ_stk;
     Array(int16_t) ind_len_stk;
 
@@ -173,6 +174,8 @@ static unsigned serialize(Scanner *scanner, char *buffer) {
     size += sizeof(int16_t);
     *(int16_t *)&buffer[size] = scanner->blk_imp_tab;
     size += sizeof(int16_t);
+    *(int16_t *)&buffer[size] = scanner->njk_depth;
+    size += sizeof(int16_t);
     int16_t *typ_itr = scanner->ind_typ_stk.contents + 1;
     int16_t *typ_end = scanner->ind_typ_stk.contents + scanner->ind_typ_stk.size;
     int16_t *len_itr = scanner->ind_len_stk.contents + 1;
@@ -191,6 +194,7 @@ static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
     scanner->blk_imp_row = -1;
     scanner->blk_imp_col = -1;
     scanner->blk_imp_tab = 0;
+    scanner->njk_depth = 0;
     array_delete(&scanner->ind_typ_stk);
     array_push(&scanner->ind_typ_stk, IND_ROT);
     array_delete(&scanner->ind_len_stk);
@@ -207,6 +211,10 @@ static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
         size += sizeof(int16_t);
         scanner->blk_imp_tab = *(int16_t *)&buffer[size];
         size += sizeof(int16_t);
+        if (size < length) {
+            scanner->njk_depth = *(int16_t *)&buffer[size];
+            size += sizeof(int16_t);
+        }
         while (size < length) {
             array_push(&scanner->ind_typ_stk, *(int16_t *)&buffer[size]);
             size += sizeof(int16_t);
@@ -658,8 +666,13 @@ static bool scn_drs_doc_end(Scanner *scanner, TSLexer *lexer) {
     return false;
 }
 
-static bool scn_dqt_str_cnt(Scanner *scanner, TSLexer *lexer, TSSymbol result_symbol) {
+static bool scn_dqt_str_cnt(Scanner *scanner, TSLexer *lexer, TSSymbol result_symbol, const bool *valid_symbols) {
     if (!is_nb_double_char(lexer->lookahead)) {
+        return false;
+    }
+    // If the string content starts immediately with '{{', let the interpolation scanner
+    // handle it (return false so the '{' dispatch at the call site fires instead).
+    if (lexer->lookahead == '{' && valid_symbols[NJK_INTERP_BGN]) {
         return false;
     }
     if (scanner->cur_col == 0 && scn_drs_doc_end(scanner, lexer)) {
@@ -669,14 +682,31 @@ static bool scn_dqt_str_cnt(Scanner *scanner, TSLexer *lexer, TSSymbol result_sy
         adv(scanner, lexer);
     }
     while (is_nb_double_char(lexer->lookahead)) {
+        // Stop before '{{' so the interpolation can be tokenized separately.
+        if (lexer->lookahead == '{' && valid_symbols[NJK_INTERP_BGN]) {
+            mrk_end(scanner, lexer);              // mark end BEFORE the first '{'
+            adv(scanner, lexer);                  // advance past first '{' to peek second
+            if (lexer->lookahead == '{') {
+                // Confirmed '{{' — return content token ending before the first '{'.
+                // (do NOT call mrk_end again; the mark is already set before '{')
+                RET_SYM(result_symbol);
+            }
+            // Only one '{' — not an interpolation; include it and continue.
+            mrk_end(scanner, lexer);
+            continue;
+        }
         adv(scanner, lexer);
     }
     mrk_end(scanner, lexer);
     RET_SYM(result_symbol);
 }
 
-static bool scn_sqt_str_cnt(Scanner *scanner, TSLexer *lexer, TSSymbol result_symbol) {
+static bool scn_sqt_str_cnt(Scanner *scanner, TSLexer *lexer, TSSymbol result_symbol, const bool *valid_symbols) {
     if (!is_nb_single_char(lexer->lookahead)) {
+        return false;
+    }
+    // Same '{{'-break logic as double-quote: if content starts with '{{', step aside.
+    if (lexer->lookahead == '{' && valid_symbols[NJK_INTERP_BGN]) {
         return false;
     }
     if (scanner->cur_col == 0 && scn_drs_doc_end(scanner, lexer)) {
@@ -686,6 +716,18 @@ static bool scn_sqt_str_cnt(Scanner *scanner, TSLexer *lexer, TSSymbol result_sy
         adv(scanner, lexer);
     }
     while (is_nb_single_char(lexer->lookahead)) {
+        // Stop before '{{' so the interpolation can be tokenized separately.
+        if (lexer->lookahead == '{' && valid_symbols[NJK_INTERP_BGN]) {
+            mrk_end(scanner, lexer);              // mark end BEFORE the first '{'
+            adv(scanner, lexer);                  // advance past first '{' to peek second
+            if (lexer->lookahead == '{') {
+                // Confirmed '{{' — return content token ending before the first '{'.
+                RET_SYM(result_symbol);
+            }
+            // Only one '{' — not an interpolation; include it and continue.
+            mrk_end(scanner, lexer);
+            continue;
+        }
         adv(scanner, lexer);
     }
     mrk_end(scanner, lexer);
@@ -843,7 +885,8 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
     int16_t prt_ind = ind_ptr == ind_end ? -1 : *ind_ptr;
     int16_t cur_ind_typ = *array_back(&scanner->ind_typ_stk);
 
-    bool is_njk_inner = valid_symbols[NJK_INTERP_END] || valid_symbols[NJK_STMT_END] || valid_symbols[NJK_CMT_END];
+    bool is_njk_inner = scanner->njk_depth > 0 &&
+                        (valid_symbols[NJK_INTERP_END] || valid_symbols[NJK_STMT_END] || valid_symbols[NJK_CMT_END]);
 
     // When inside a nunjucks construct ({{ }}, {% %}, {# #}):
     // Emit NJK_CONTENT (raw text until the closing delimiter), then the closing delimiter.
@@ -975,6 +1018,50 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
     int16_t bgn_col = scanner->cur_col;
     int32_t bgn_chr = lexer->lookahead;
 
+    // Hoist here so they are available for the Nunjucks dedent-suppression block below.
+    bool has_nwl = scanner->cur_row > scanner->row;
+    bool is_r = !has_nwl;
+    bool is_br = has_nwl && leading_spaces > cur_ind;
+    bool is_b = has_nwl && leading_spaces == cur_ind && !has_tab_ind;
+    bool is_s = bgn_col == 0;
+
+    // Nunjucks dedent-suppression: {% %} and {# #} statements are always on their own
+    // line (possibly indented) and are extras — they must NOT close surrounding YAML
+    // blocks.  If this line would fire a BL (block-level dedent) and leads with a
+    // Nunjucks opener, emit the opener directly instead of popping the indent stack.
+    // njk_peek advances the lexer irreversibly past '{', so every post-peek outcome
+    // (statement, comment, interpolation, flow-map, plain) is fully handled here.
+    bool bl_would_fire =
+        valid_symbols[BL] && bgn_col <= cur_ind && !has_tab_ind &&
+        (cur_ind == prt_ind && cur_ind_typ == IND_SEQ
+             ? bgn_col < cur_ind || lexer->lookahead != '-'
+             : bgn_col <= prt_ind || cur_ind_typ == IND_STR);
+
+    if (bgn_chr == '{' && bl_would_fire &&
+        (valid_symbols[NJK_STMT_BGN] || valid_symbols[NJK_CMT_BGN] || valid_symbols[NJK_INTERP_BGN])) {
+        int32_t second = njk_peek(lexer);            // advance past first '{'
+
+        if (second == '%' && valid_symbols[NJK_STMT_BGN]) {
+            adv(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
+            RET_SYM(NJK_STMT_BGN);                   // BL suppressed: statement is indent-transparent
+        }
+        if (second == '#' && valid_symbols[NJK_CMT_BGN]) {
+            adv(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
+            RET_SYM(NJK_CMT_BGN);                    // BL suppressed: comment is indent-transparent
+        }
+        if (second == '{' && valid_symbols[NJK_INTERP_BGN]) {
+            adv(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
+            RET_SYM(NJK_INTERP_BGN);                 // BL suppressed for line-leading interpolation
+        }
+        // Not a Nunjucks opener: we already advanced past '{'. Reproduce the flow-map
+        // emission (mirror of the '{' dispatch ~1160-1180); otherwise mark end and fall
+        // through to plain-scalar (cur_col - bgn_col == 1 is handled downstream).
+        if (valid_symbols[R_FLW_MAP_BGN]  && is_r)  { MAY_UPD_IMP_COL(); mrk_end(scanner, lexer); RET_SYM(R_FLW_MAP_BGN) }
+        if (valid_symbols[BR_FLW_MAP_BGN] && is_br) { MAY_UPD_IMP_COL(); mrk_end(scanner, lexer); RET_SYM(BR_FLW_MAP_BGN) }
+        if (valid_symbols[B_FLW_MAP_BGN]  && is_b)  { MAY_UPD_IMP_COL(); mrk_end(scanner, lexer); RET_SYM(B_FLW_MAP_BGN) }
+        mrk_end(scanner, lexer);                     // advanced one char; fall through to main dispatch
+    }
+
     if (valid_symbols[BL] && bgn_col <= cur_ind && !has_tab_ind) {
         if (cur_ind == prt_ind && cur_ind_typ == IND_SEQ ? bgn_col < cur_ind || lexer->lookahead != '-'
                                                          : bgn_col <= prt_ind || cur_ind_typ == IND_STR) {
@@ -982,12 +1069,6 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             RET_SYM(BL);
         }
     }
-
-    bool has_nwl = scanner->cur_row > scanner->row;
-    bool is_r = !has_nwl;
-    bool is_br = has_nwl && leading_spaces > cur_ind;
-    bool is_b = has_nwl && leading_spaces == cur_ind && !has_tab_ind;
-    bool is_s = bgn_col == 0;
 
     if (valid_symbols[R_DIR_YML_VER] && is_r) {
         return scn_dir_yml_ver(scanner, lexer, R_DIR_YML_VER);
@@ -1005,13 +1086,13 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
         return true;
     }
 
-    if ((valid_symbols[R_DQT_STR_CTN] && is_r && scn_dqt_str_cnt(scanner, lexer, R_DQT_STR_CTN)) ||
-        (valid_symbols[BR_DQT_STR_CTN] && is_br && scn_dqt_str_cnt(scanner, lexer, BR_DQT_STR_CTN))) {
+    if ((valid_symbols[R_DQT_STR_CTN] && is_r && scn_dqt_str_cnt(scanner, lexer, R_DQT_STR_CTN, valid_symbols)) ||
+        (valid_symbols[BR_DQT_STR_CTN] && is_br && scn_dqt_str_cnt(scanner, lexer, BR_DQT_STR_CTN, valid_symbols))) {
         return true;
     }
 
-    if ((valid_symbols[R_SQT_STR_CTN] && is_r && scn_sqt_str_cnt(scanner, lexer, R_SQT_STR_CTN)) ||
-        (valid_symbols[BR_SQT_STR_CTN] && is_br && scn_sqt_str_cnt(scanner, lexer, BR_SQT_STR_CTN))) {
+    if ((valid_symbols[R_SQT_STR_CTN] && is_r && scn_sqt_str_cnt(scanner, lexer, R_SQT_STR_CTN, valid_symbols)) ||
+        (valid_symbols[BR_SQT_STR_CTN] && is_br && scn_sqt_str_cnt(scanner, lexer, BR_SQT_STR_CTN, valid_symbols))) {
         return true;
     }
 
@@ -1029,6 +1110,7 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             if (lexer->lookahead == '}') {
                 adv(scanner, lexer);
                 mrk_end(scanner, lexer);
+                if (scanner->njk_depth > 0) scanner->njk_depth--;
                 RET_SYM(NJK_STMT_END);
             }
         } else if (valid_symbols[S_DIR_YML_BGN] && is_s) {
@@ -1118,16 +1200,19 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             if (second == '{' && valid_symbols[NJK_INTERP_BGN]) {
                 adv(scanner, lexer); // consume second '{'
                 mrk_end(scanner, lexer);
+                scanner->njk_depth++;
                 RET_SYM(NJK_INTERP_BGN);
             }
             if (second == '%' && valid_symbols[NJK_STMT_BGN]) {
                 adv(scanner, lexer); // consume '%'
                 mrk_end(scanner, lexer);
+                scanner->njk_depth++;
                 RET_SYM(NJK_STMT_BGN);
             }
             if (second == '#' && valid_symbols[NJK_CMT_BGN]) {
                 adv(scanner, lexer); // consume '#'
                 mrk_end(scanner, lexer);
+                scanner->njk_depth++;
                 RET_SYM(NJK_CMT_BGN);
             }
             // Second char wasn't a nunjucks opener. We already advanced past the first '{'.
@@ -1178,6 +1263,7 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             if (lexer->lookahead == '}') {
                 adv(scanner, lexer);
                 mrk_end(scanner, lexer);
+                if (scanner->njk_depth > 0) scanner->njk_depth--;
                 RET_SYM(NJK_INTERP_END);
             }
             // Only one '}' — flow map end
@@ -1209,6 +1295,7 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
         if (lexer->lookahead == '}') {
             adv(scanner, lexer);
             mrk_end(scanner, lexer);
+            if (scanner->njk_depth > 0) scanner->njk_depth--;
             RET_SYM(NJK_CMT_END);
         }
     } else if (lexer->lookahead == ',') {
