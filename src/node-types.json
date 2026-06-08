@@ -49,9 +49,13 @@
     "named": true,
     "fields": {
       "key": {
-        "multiple": false,
+        "multiple": true,
         "required": false,
         "types": [
+          {
+            "type": "anchor",
+            "named": true
+          },
           {
             "type": "block_node",
             "named": true
@@ -62,14 +66,22 @@
           },
           {
             "type": "nunjucks_interpolation",
+            "named": true
+          },
+          {
+            "type": "tag",
             "named": true
           }
         ]
       },
       "value": {
-        "multiple": false,
+        "multiple": true,
         "required": false,
         "types": [
+          {
+            "type": "anchor",
+            "named": true
+          },
           {
             "type": "block_node",
             "named": true
@@ -80,6 +92,10 @@
           },
           {
             "type": "nunjucks_interpolation",
+            "named": true
+          },
+          {
+            "type": "tag",
             "named": true
           }
         ]
@@ -142,9 +158,13 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "anchor",
+          "named": true
+        },
         {
           "type": "block_node",
           "named": true
@@ -155,6 +175,10 @@
         },
         {
           "type": "nunjucks_interpolation",
+          "named": true
+        },
+        {
+          "type": "tag",
           "named": true
         }
       ]
@@ -169,6 +193,10 @@
       "required": false,
       "types": [
         {
+          "type": "anchor",
+          "named": true
+        },
+        {
           "type": "block_node",
           "named": true
         },
@@ -182,6 +210,10 @@
         },
         {
           "type": "reserved_directive",
+          "named": true
+        },
+        {
+          "type": "tag",
           "named": true
         },
         {
@@ -206,6 +238,10 @@
         {
           "type": "escape_sequence",
           "named": true
+        },
+        {
+          "type": "nunjucks_interpolation",
+          "named": true
         }
       ]
     }
@@ -219,6 +255,10 @@
       "required": false,
       "types": [
         {
+          "type": "anchor",
+          "named": true
+        },
+        {
           "type": "flow_node",
           "named": true
         },
@@ -228,6 +268,10 @@
         },
         {
           "type": "nunjucks_interpolation",
+          "named": true
+        },
+        {
+          "type": "tag",
           "named": true
         }
       ]
@@ -281,29 +325,45 @@
     "named": true,
     "fields": {
       "key": {
-        "multiple": false,
+        "multiple": true,
         "required": false,
         "types": [
+          {
+            "type": "anchor",
+            "named": true
+          },
           {
             "type": "flow_node",
             "named": true
           },
           {
             "type": "nunjucks_interpolation",
+            "named": true
+          },
+          {
+            "type": "tag",
             "named": true
           }
         ]
       },
       "value": {
-        "multiple": false,
+        "multiple": true,
         "required": false,
         "types": [
+          {
+            "type": "anchor",
+            "named": true
+          },
           {
             "type": "flow_node",
             "named": true
           },
           {
             "type": "nunjucks_interpolation",
+            "named": true
+          },
+          {
+            "type": "tag",
             "named": true
           }
         ]
@@ -319,6 +379,10 @@
       "required": false,
       "types": [
         {
+          "type": "anchor",
+          "named": true
+        },
+        {
           "type": "flow_node",
           "named": true
         },
@@ -328,6 +392,10 @@
         },
         {
           "type": "nunjucks_interpolation",
+          "named": true
+        },
+        {
+          "type": "tag",
           "named": true
         }
       ]
@@ -370,11 +438,15 @@
     "extra": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
         {
           "type": "nunjucks_expression",
+          "named": true
+        },
+        {
+          "type": "nunjucks_keyword",
           "named": true
         }
       ]
@@ -440,6 +512,10 @@
       "types": [
         {
           "type": "escape_sequence",
+          "named": true
+        },
+        {
+          "type": "nunjucks_interpolation",
           "named": true
         }
       ]
@@ -594,6 +670,10 @@
   },
   {
     "type": "nunjucks_expression",
+    "named": true
+  },
+  {
+    "type": "nunjucks_keyword",
     "named": true
   },
   {

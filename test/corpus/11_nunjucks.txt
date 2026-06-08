@@ -70,18 +70,18 @@ environment: development
 {% endif %}
 --------------------------------------------------------------------------------
 (stream
-  (nunjucks_statement (nunjucks_expression))
+  (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
           key: (flow_node (plain_scalar (string_scalar)))
           value: (flow_node (plain_scalar (string_scalar))))
-        (nunjucks_statement (nunjucks_expression))
+        (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))
         (block_mapping_pair
           key: (flow_node (plain_scalar (string_scalar)))
           value: (flow_node (plain_scalar (string_scalar))))
-        (nunjucks_statement (nunjucks_expression))))))
+        (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))))))
 
 ================================================================================
 For-loop statement
@@ -91,14 +91,14 @@ value: 1
 {% endfor %}
 --------------------------------------------------------------------------------
 (stream
-  (nunjucks_statement (nunjucks_expression))
+  (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
           key: (flow_node (plain_scalar (string_scalar)))
           value: (flow_node (plain_scalar (integer_scalar))))
-        (nunjucks_statement (nunjucks_expression))))))
+        (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))))))
 
 ================================================================================
 Nunjucks comment
@@ -108,6 +108,109 @@ Nunjucks comment
 (stream
   (nunjucks_comment
     (nunjucks_comment_text)))
+
+================================================================================
+Tag followed by interpolation (e.g. !Sub {{ var }})
+================================================================================
+- !Sub {{ arn }}
+--------------------------------------------------------------------------------
+(stream
+  (document
+    (block_node
+      (block_sequence
+        (block_sequence_item
+          (tag)
+          (nunjucks_interpolation
+            (nunjucks_expression)))))))
+
+================================================================================
+Statement wrapping YAML sequence items inside nested block (dedent fix)
+================================================================================
+Something:
+    Tags:
+       - Hello
+{% for arn in policyArns %}
+       - !Sub {{ arn }}
+{% endfor %}
+    VpcConfig:
+      SubnetIds: !Ref subnetIds
+--------------------------------------------------------------------------------
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node (plain_scalar (string_scalar)))
+          value: (block_node
+            (block_mapping
+              (block_mapping_pair
+                key: (flow_node (plain_scalar (string_scalar)))
+                value: (block_node
+                  (block_sequence
+                    (block_sequence_item
+                      (flow_node (plain_scalar (string_scalar))))
+                    (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))
+                    (block_sequence_item
+                      (tag)
+                      (nunjucks_interpolation (nunjucks_expression)))
+                    (nunjucks_statement (nunjucks_keyword) (nunjucks_expression)))))
+              (block_mapping_pair
+                key: (flow_node (plain_scalar (string_scalar)))
+                value: (block_node
+                  (block_mapping
+                    (block_mapping_pair
+                      key: (flow_node (plain_scalar (string_scalar)))
+                      value: (flow_node
+                        (tag)
+                        (plain_scalar (string_scalar))))))))))))))
+
+================================================================================
+Interpolation inside double-quoted string value
+================================================================================
+host: "{{ db_host }}"
+--------------------------------------------------------------------------------
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node (plain_scalar (string_scalar)))
+          value: (flow_node
+            (double_quote_scalar
+              (nunjucks_interpolation
+                (nunjucks_expression)))))))))
+
+================================================================================
+Interpolation with prefix content in double-quoted string
+================================================================================
+name: "prefix-{{ environment }}"
+--------------------------------------------------------------------------------
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node (plain_scalar (string_scalar)))
+          value: (flow_node
+            (double_quote_scalar
+              (nunjucks_interpolation
+                (nunjucks_expression)))))))))
+
+================================================================================
+Interpolation as double-quoted mapping key
+================================================================================
+"{{ name }}": value
+--------------------------------------------------------------------------------
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node
+            (double_quote_scalar
+              (nunjucks_interpolation
+                (nunjucks_expression))))
+          value: (flow_node (plain_scalar (string_scalar))))))))
 
 ================================================================================
 Regression - plain YAML flow map still parses

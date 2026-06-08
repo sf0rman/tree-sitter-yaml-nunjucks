@@ -2689,6 +2689,19 @@
         {
           "type": "SYMBOL",
           "name": "nunjucks_interpolation"
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_r_prp"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "nunjucks_interpolation"
+            }
+          ]
         }
       ]
     },
@@ -2725,6 +2738,19 @@
         {
           "type": "SYMBOL",
           "name": "nunjucks_interpolation"
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_br_prp"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "nunjucks_interpolation"
+            }
+          ]
         }
       ]
     },
@@ -2761,6 +2787,19 @@
         {
           "type": "SYMBOL",
           "name": "nunjucks_interpolation"
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_r_sgl_prp"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "nunjucks_interpolation"
+            }
+          ]
         }
       ]
     },
@@ -2797,6 +2836,19 @@
         {
           "type": "SYMBOL",
           "name": "nunjucks_interpolation"
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_br_sgl_prp"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "nunjucks_interpolation"
+            }
+          ]
         }
       ]
     },
@@ -2833,6 +2885,19 @@
         {
           "type": "SYMBOL",
           "name": "nunjucks_interpolation"
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_b_sgl_prp"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "nunjucks_interpolation"
+            }
+          ]
         }
       ]
     },
@@ -2869,6 +2934,19 @@
         {
           "type": "SYMBOL",
           "name": "nunjucks_interpolation"
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_r_prp"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "nunjucks_interpolation"
+            }
+          ]
         }
       ]
     },
@@ -2905,6 +2983,19 @@
         {
           "type": "SYMBOL",
           "name": "nunjucks_interpolation"
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_br_prp"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "nunjucks_interpolation"
+            }
+          ]
         }
       ]
     },
@@ -2941,6 +3032,19 @@
         {
           "type": "SYMBOL",
           "name": "nunjucks_interpolation"
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_r_sgl_prp"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "nunjucks_interpolation"
+            }
+          ]
         }
       ]
     },
@@ -4892,16 +4996,29 @@
           "value": "\""
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_r_sgl_dqt_ctn"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_r_dqt_str_ctn"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_r_dqt_esc_seq"
+                },
+                "named": true,
+                "value": "escape_sequence"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "nunjucks_interpolation"
+              }
+            ]
+          }
         },
         {
           "type": "CHOICE",
@@ -4965,16 +5082,29 @@
           "value": "\""
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_r_sgl_dqt_ctn"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_r_dqt_str_ctn"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_r_dqt_esc_seq"
+                },
+                "named": true,
+                "value": "escape_sequence"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "nunjucks_interpolation"
+              }
+            ]
+          }
         },
         {
           "type": "CHOICE",
@@ -5038,16 +5168,29 @@
           "value": "\""
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_r_sgl_dqt_ctn"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_r_dqt_str_ctn"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_r_dqt_esc_seq"
+                },
+                "named": true,
+                "value": "escape_sequence"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "nunjucks_interpolation"
+              }
+            ]
+          }
         },
         {
           "type": "ALIAS",
@@ -5073,16 +5216,29 @@
           "value": "\""
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_r_sgl_dqt_ctn"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_r_dqt_str_ctn"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_r_dqt_esc_seq"
+                },
+                "named": true,
+                "value": "escape_sequence"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "nunjucks_interpolation"
+              }
+            ]
+          }
         },
         {
           "type": "ALIAS",
@@ -5108,16 +5264,29 @@
           "value": "\""
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_r_sgl_dqt_ctn"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_r_dqt_str_ctn"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_r_dqt_esc_seq"
+                },
+                "named": true,
+                "value": "escape_sequence"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "nunjucks_interpolation"
+              }
+            ]
+          }
         },
         {
           "type": "ALIAS",
@@ -5147,6 +5316,10 @@
             },
             "named": true,
             "value": "escape_sequence"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "nunjucks_interpolation"
           }
         ]
       }
@@ -5181,6 +5354,10 @@
                   },
                   "named": true,
                   "value": "escape_sequence"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "nunjucks_interpolation"
                 }
               ]
             },
@@ -5201,6 +5378,10 @@
                     },
                     "named": true,
                     "value": "escape_sequence"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "nunjucks_interpolation"
                   }
                 ]
               }
@@ -5427,16 +5608,29 @@
           "value": "'"
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_r_sgl_sqt_ctn"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_r_sqt_str_ctn"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_r_sqt_esc_sqt"
+                },
+                "named": true,
+                "value": "escape_sequence"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "nunjucks_interpolation"
+              }
+            ]
+          }
         },
         {
           "type": "REPEAT",
@@ -5483,16 +5677,29 @@
           "value": "'"
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_r_sgl_sqt_ctn"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_r_sqt_str_ctn"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_r_sqt_esc_sqt"
+                },
+                "named": true,
+                "value": "escape_sequence"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "nunjucks_interpolation"
+              }
+            ]
+          }
         },
         {
           "type": "REPEAT",
@@ -5539,16 +5746,29 @@
           "value": "'"
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_r_sgl_sqt_ctn"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_r_sqt_str_ctn"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_r_sqt_esc_sqt"
+                },
+                "named": true,
+                "value": "escape_sequence"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "nunjucks_interpolation"
+              }
+            ]
+          }
         },
         {
           "type": "ALIAS",
@@ -5574,16 +5794,29 @@
           "value": "'"
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_r_sgl_sqt_ctn"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_r_sqt_str_ctn"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_r_sqt_esc_sqt"
+                },
+                "named": true,
+                "value": "escape_sequence"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "nunjucks_interpolation"
+              }
+            ]
+          }
         },
         {
           "type": "ALIAS",
@@ -5609,16 +5842,29 @@
           "value": "'"
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_r_sgl_sqt_ctn"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_r_sqt_str_ctn"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_r_sqt_esc_sqt"
+                },
+                "named": true,
+                "value": "escape_sequence"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "nunjucks_interpolation"
+              }
+            ]
+          }
         },
         {
           "type": "ALIAS",
@@ -5648,6 +5894,10 @@
             },
             "named": true,
             "value": "escape_sequence"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "nunjucks_interpolation"
           }
         ]
       }
@@ -5670,6 +5920,10 @@
               },
               "named": true,
               "value": "escape_sequence"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "nunjucks_interpolation"
             }
           ]
         },
@@ -5690,6 +5944,10 @@
                 },
                 "named": true,
                 "value": "escape_sequence"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "nunjucks_interpolation"
               }
             ]
           }
@@ -6532,15 +6790,32 @@
       ]
     },
     "nunjucks_statement": {
-      "type": "CHOICE",
+      "type": "SEQ",
       "members": [
         {
-          "type": "SEQ",
+          "type": "SYMBOL",
+          "name": "_njk_stmt_bgn"
+        },
+        {
+          "type": "CHOICE",
           "members": [
             {
-              "type": "SYMBOL",
-              "name": "_njk_stmt_bgn"
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_njk_keyword"
+              },
+              "named": true,
+              "value": "nunjucks_keyword"
             },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "CHOICE",
+          "members": [
             {
               "type": "ALIAS",
               "content": {
@@ -6551,23 +6826,13 @@
               "value": "nunjucks_expression"
             },
             {
-              "type": "SYMBOL",
-              "name": "_njk_stmt_end"
+              "type": "BLANK"
             }
           ]
         },
         {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_njk_stmt_bgn"
-            },
-            {
-              "type": "SYMBOL",
-              "name": "_njk_stmt_end"
-            }
-          ]
+          "type": "SYMBOL",
+          "name": "_njk_stmt_end"
         }
       ]
     },
@@ -6672,6 +6937,30 @@
       "_r_sgl_sqt_str"
     ],
     [
+      "_r_dqt_str",
+      "_r_sgl_dqt_str",
+      "_br_mtl_dqt_ctn"
+    ],
+    [
+      "_r_sqt_str",
+      "_r_sgl_sqt_str",
+      "_br_mtl_sqt_ctn"
+    ],
+    [
+      "_r_dqt_str",
+      "_br_mtl_dqt_ctn"
+    ],
+    [
+      "_r_sqt_str",
+      "_br_mtl_sqt_ctn"
+    ],
+    [
+      "_br_mtl_dqt_ctn"
+    ],
+    [
+      "_br_mtl_sqt_ctn"
+    ],
+    [
       "_r_pln_flw_val",
       "_r_sgl_pln_flw_val"
     ],
@@ -6701,11 +6990,23 @@
     ],
     [
       "_r_prp_val",
-      "_r_blk_map_br_val"
+      "_r_blk_map_br_val",
+      "_blk_seq_itm_tal"
+    ],
+    [
+      "_r_prp_val",
+      "_r_blk_map_br_val",
+      "_blk_imp_itm_tal"
     ],
     [
       "_br_prp_val",
-      "_br_blk_map_val"
+      "_br_blk_map_val",
+      "_blk_seq_itm_tal"
+    ],
+    [
+      "_br_prp_val",
+      "_br_blk_map_val",
+      "_blk_imp_itm_tal"
     ],
     [
       "_r_flw_seq_itm",
@@ -7198,6 +7499,10 @@
     {
       "type": "SYMBOL",
       "name": "_njk_content"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_njk_keyword"
     },
     {
       "type": "SYMBOL",
