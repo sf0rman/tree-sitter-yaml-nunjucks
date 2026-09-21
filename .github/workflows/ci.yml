@@ -43,7 +43,7 @@ jobs:
       - name: Set up test suite
         shell: bash
         run: |-
-          printf '%s\n' examples/*.yaml > "$RUNNER_TEMP/test-files"
+          printf '%s\n' examples/*.njk > "$RUNNER_TEMP/test-files"
           while read -r file; do
             printf '%s\n' "$file" >> "$RUNNER_TEMP/test-files"
             if [[ -f ${file/in.yaml/error} ]]; then

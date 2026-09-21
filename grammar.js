@@ -74,6 +74,7 @@ module.exports = grammar({
     $._njk_cmt_end,     // #}
     $._njk_content,     // raw content inside {{ }} or {% %}
     $._njk_keyword,     // leading identifier word inside {% %} (e.g. "if", "for", "endfor")
+    $._njk_identifier,  // any other identifier inside {{ }} or {% %} (variable/filter names, "in", ...)
 
     $._err_rec,
   ],
@@ -516,26 +517,38 @@ module.exports = grammar({
     // ===== Nunjucks template support =====
 
     // Top-level constructs: interpolation (value), statement/comment (extras).
-    // Delimiters are external tokens; content is also external (raw text from scanner).
+    // Delimiters are external tokens (raw text, including any whitespace-control '-'),
+    // aliased to one visible node type so queries can target the braces precisely
+    // instead of relying on capture-override ordering over the whole span. Content is
+    // also external (raw text from scanner).
     nunjucks_interpolation: $ => choice(
-      seq($._njk_interp_bgn, alias($._njk_content, $.nunjucks_expression), $._njk_interp_end),
-      seq($._njk_interp_bgn, $._njk_interp_end),
+      seq(alias($._njk_interp_bgn, $.nunjucks_delimiter), $.nunjucks_expression,
+          alias($._njk_interp_end, $.nunjucks_delimiter)),
+      seq(alias($._njk_interp_bgn, $.nunjucks_delimiter), alias($._njk_interp_end, $.nunjucks_delimiter)),
     ),
 
     nunjucks_statement: $ => seq(
-      $._njk_stmt_bgn,
+      alias($._njk_stmt_bgn, $.nunjucks_delimiter),
       optional(alias($._njk_keyword, $.nunjucks_keyword)),
-      optional(alias($._njk_content, $.nunjucks_expression)),
-      $._njk_stmt_end,
+      optional($.nunjucks_expression),
+      alias($._njk_stmt_end, $.nunjucks_delimiter),
     ),
 
     nunjucks_comment: $ => choice(
-      seq($._njk_cmt_bgn, alias($._njk_content, $.nunjucks_comment_text), $._njk_cmt_end),
-      seq($._njk_cmt_bgn, $._njk_cmt_end),
+      seq(alias($._njk_cmt_bgn, $.nunjucks_delimiter), alias($._njk_content, $.nunjucks_comment_text),
+          alias($._njk_cmt_end, $.nunjucks_delimiter)),
+      seq(alias($._njk_cmt_bgn, $.nunjucks_delimiter), alias($._njk_cmt_end, $.nunjucks_delimiter)),
     ),
 
-    // Note: expression content is handled by the scanner as raw NJK_CONTENT tokens.
-    // The content is aliased to nunjucks_expression in interpolation/statement nodes.
+    // Expression body: the scanner classifies each run of characters as either a
+    // variable/filter-name identifier (NJK_IDENTIFIER) or opaque raw text (NJK_CONTENT
+    // — operators, whitespace, punctuation, literals). No further internal structure
+    // (no separate operator/string/number tokens) to avoid tree-sitter's own
+    // internal-vs-external lexer contention over expression syntax.
+    nunjucks_expression: $ => repeat1(choice(
+      alias($._njk_identifier, $.nunjucks_identifier),
+      alias($._njk_content, $.nunjucks_content),
+    )),
   },
 });
 

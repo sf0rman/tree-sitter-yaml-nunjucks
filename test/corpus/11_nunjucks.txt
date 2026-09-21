@@ -3,42 +3,70 @@ Interpolation as block-map value
 ================================================================================
 port: {{ db_port }}
 --------------------------------------------------------------------------------
+
 (stream
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
-          key: (flow_node (plain_scalar (string_scalar)))
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
           value: (nunjucks_interpolation
-            (nunjucks_expression)))))))
+            (nunjucks_delimiter)
+            (nunjucks_expression
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content))
+            (nunjucks_delimiter)))))))
 
 ================================================================================
 Interpolation with filter
 ================================================================================
 port: {{ db_port | default(5432) }}
 --------------------------------------------------------------------------------
+
 (stream
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
-          key: (flow_node (plain_scalar (string_scalar)))
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
           value: (nunjucks_interpolation
-            (nunjucks_expression)))))))
+            (nunjucks_delimiter)
+            (nunjucks_expression
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content))
+            (nunjucks_delimiter)))))))
 
 ================================================================================
 Interpolation with member access
 ================================================================================
 name: {{ feature.name }}
 --------------------------------------------------------------------------------
+
 (stream
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
-          key: (flow_node (plain_scalar (string_scalar)))
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
           value: (nunjucks_interpolation
-            (nunjucks_expression)))))))
+            (nunjucks_delimiter)
+            (nunjucks_expression
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content))
+            (nunjucks_delimiter)))))))
 
 ================================================================================
 Interpolation as sequence item value
@@ -46,6 +74,7 @@ Interpolation as sequence item value
 - name: {{ feature.name }}
   enabled: {{ feature.enabled }}
 --------------------------------------------------------------------------------
+
 (stream
   (document
     (block_node
@@ -54,11 +83,31 @@ Interpolation as sequence item value
           (block_node
             (block_mapping
               (block_mapping_pair
-                key: (flow_node (plain_scalar (string_scalar)))
-                value: (nunjucks_interpolation (nunjucks_expression)))
+                key: (flow_node
+                  (plain_scalar
+                    (string_scalar)))
+                value: (nunjucks_interpolation
+                  (nunjucks_delimiter)
+                  (nunjucks_expression
+                    (nunjucks_content)
+                    (nunjucks_identifier)
+                    (nunjucks_content)
+                    (nunjucks_identifier)
+                    (nunjucks_content))
+                  (nunjucks_delimiter)))
               (block_mapping_pair
-                key: (flow_node (plain_scalar (string_scalar)))
-                value: (nunjucks_interpolation (nunjucks_expression))))))))))
+                key: (flow_node
+                  (plain_scalar
+                    (string_scalar)))
+                value: (nunjucks_interpolation
+                  (nunjucks_delimiter)
+                  (nunjucks_expression
+                    (nunjucks_content)
+                    (nunjucks_identifier)
+                    (nunjucks_content)
+                    (nunjucks_identifier)
+                    (nunjucks_content))
+                  (nunjucks_delimiter))))))))))
 
 ================================================================================
 Statement extras between mapping entries
@@ -69,19 +118,45 @@ environment: production
 environment: development
 {% endif %}
 --------------------------------------------------------------------------------
+
 (stream
-  (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))
+  (nunjucks_statement
+    (nunjucks_delimiter)
+    (nunjucks_keyword)
+    (nunjucks_expression
+      (nunjucks_content)
+      (nunjucks_identifier)
+      (nunjucks_content))
+    (nunjucks_delimiter))
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
-          key: (flow_node (plain_scalar (string_scalar)))
-          value: (flow_node (plain_scalar (string_scalar))))
-        (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (flow_node
+            (plain_scalar
+              (string_scalar))))
+        (nunjucks_statement
+          (nunjucks_delimiter)
+          (nunjucks_keyword)
+          (nunjucks_expression
+            (nunjucks_content))
+          (nunjucks_delimiter))
         (block_mapping_pair
-          key: (flow_node (plain_scalar (string_scalar)))
-          value: (flow_node (plain_scalar (string_scalar))))
-        (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))))))
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (flow_node
+            (plain_scalar
+              (string_scalar))))
+        (nunjucks_statement
+          (nunjucks_delimiter)
+          (nunjucks_keyword)
+          (nunjucks_expression
+            (nunjucks_content))
+          (nunjucks_delimiter))))))
 
 ================================================================================
 For-loop statement
@@ -90,30 +165,55 @@ For-loop statement
 value: 1
 {% endfor %}
 --------------------------------------------------------------------------------
+
 (stream
-  (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))
+  (nunjucks_statement
+    (nunjucks_delimiter)
+    (nunjucks_keyword)
+    (nunjucks_expression
+      (nunjucks_content)
+      (nunjucks_identifier)
+      (nunjucks_content)
+      (nunjucks_identifier)
+      (nunjucks_content)
+      (nunjucks_identifier)
+      (nunjucks_content))
+    (nunjucks_delimiter))
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
-          key: (flow_node (plain_scalar (string_scalar)))
-          value: (flow_node (plain_scalar (integer_scalar))))
-        (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))))))
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (flow_node
+            (plain_scalar
+              (integer_scalar))))
+        (nunjucks_statement
+          (nunjucks_delimiter)
+          (nunjucks_keyword)
+          (nunjucks_expression
+            (nunjucks_content))
+          (nunjucks_delimiter))))))
 
 ================================================================================
 Nunjucks comment
 ================================================================================
 {# This is a Nunjucks comment #}
 --------------------------------------------------------------------------------
+
 (stream
   (nunjucks_comment
-    (nunjucks_comment_text)))
+    (nunjucks_delimiter)
+    (nunjucks_comment_text)
+    (nunjucks_delimiter)))
 
 ================================================================================
 Tag followed by interpolation (e.g. !Sub {{ var }})
 ================================================================================
 - !Sub {{ arn }}
 --------------------------------------------------------------------------------
+
 (stream
   (document
     (block_node
@@ -121,7 +221,12 @@ Tag followed by interpolation (e.g. !Sub {{ var }})
         (block_sequence_item
           (tag)
           (nunjucks_interpolation
-            (nunjucks_expression)))))))
+            (nunjucks_delimiter)
+            (nunjucks_expression
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content))
+            (nunjucks_delimiter)))))))
 
 ================================================================================
 Statement wrapping YAML sequence items inside nested block (dedent fix)
@@ -135,72 +240,123 @@ Something:
     VpcConfig:
       SubnetIds: !Ref subnetIds
 --------------------------------------------------------------------------------
+
 (stream
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
-          key: (flow_node (plain_scalar (string_scalar)))
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
           value: (block_node
             (block_mapping
               (block_mapping_pair
-                key: (flow_node (plain_scalar (string_scalar)))
+                key: (flow_node
+                  (plain_scalar
+                    (string_scalar)))
                 value: (block_node
                   (block_sequence
                     (block_sequence_item
-                      (flow_node (plain_scalar (string_scalar))))
-                    (nunjucks_statement (nunjucks_keyword) (nunjucks_expression))
+                      (flow_node
+                        (plain_scalar
+                          (string_scalar))))
+                    (nunjucks_statement
+                      (nunjucks_delimiter)
+                      (nunjucks_keyword)
+                      (nunjucks_expression
+                        (nunjucks_content)
+                        (nunjucks_identifier)
+                        (nunjucks_content)
+                        (nunjucks_identifier)
+                        (nunjucks_content)
+                        (nunjucks_identifier)
+                        (nunjucks_content))
+                      (nunjucks_delimiter))
                     (block_sequence_item
                       (tag)
-                      (nunjucks_interpolation (nunjucks_expression)))
-                    (nunjucks_statement (nunjucks_keyword) (nunjucks_expression)))))
+                      (nunjucks_interpolation
+                        (nunjucks_delimiter)
+                        (nunjucks_expression
+                          (nunjucks_content)
+                          (nunjucks_identifier)
+                          (nunjucks_content))
+                        (nunjucks_delimiter)))
+                    (nunjucks_statement
+                      (nunjucks_delimiter)
+                      (nunjucks_keyword)
+                      (nunjucks_expression
+                        (nunjucks_content))
+                      (nunjucks_delimiter)))))
               (block_mapping_pair
-                key: (flow_node (plain_scalar (string_scalar)))
+                key: (flow_node
+                  (plain_scalar
+                    (string_scalar)))
                 value: (block_node
                   (block_mapping
                     (block_mapping_pair
-                      key: (flow_node (plain_scalar (string_scalar)))
+                      key: (flow_node
+                        (plain_scalar
+                          (string_scalar)))
                       value: (flow_node
                         (tag)
-                        (plain_scalar (string_scalar))))))))))))))
+                        (plain_scalar
+                          (string_scalar))))))))))))))
 
 ================================================================================
 Interpolation inside double-quoted string value
 ================================================================================
 host: "{{ db_host }}"
 --------------------------------------------------------------------------------
+
 (stream
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
-          key: (flow_node (plain_scalar (string_scalar)))
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
           value: (flow_node
             (double_quote_scalar
               (nunjucks_interpolation
-                (nunjucks_expression)))))))))
+                (nunjucks_delimiter)
+                (nunjucks_expression
+                  (nunjucks_content)
+                  (nunjucks_identifier)
+                  (nunjucks_content))
+                (nunjucks_delimiter)))))))))
 
 ================================================================================
 Interpolation with prefix content in double-quoted string
 ================================================================================
 name: "prefix-{{ environment }}"
 --------------------------------------------------------------------------------
+
 (stream
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
-          key: (flow_node (plain_scalar (string_scalar)))
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
           value: (flow_node
             (double_quote_scalar
               (nunjucks_interpolation
-                (nunjucks_expression)))))))))
+                (nunjucks_delimiter)
+                (nunjucks_expression
+                  (nunjucks_content)
+                  (nunjucks_identifier)
+                  (nunjucks_content))
+                (nunjucks_delimiter)))))))))
 
 ================================================================================
 Interpolation as double-quoted mapping key
 ================================================================================
 "{{ name }}": value
 --------------------------------------------------------------------------------
+
 (stream
   (document
     (block_node
@@ -209,48 +365,413 @@ Interpolation as double-quoted mapping key
           key: (flow_node
             (double_quote_scalar
               (nunjucks_interpolation
-                (nunjucks_expression))))
-          value: (flow_node (plain_scalar (string_scalar))))))))
+                (nunjucks_delimiter)
+                (nunjucks_expression
+                  (nunjucks_content)
+                  (nunjucks_identifier)
+                  (nunjucks_content))
+                (nunjucks_delimiter))))
+          value: (flow_node
+            (plain_scalar
+              (string_scalar))))))))
 
 ================================================================================
 Regression - plain YAML flow map still parses
 ================================================================================
 x: {a: 1}
 --------------------------------------------------------------------------------
+
 (stream
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
-          key: (flow_node (plain_scalar (string_scalar)))
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
           value: (flow_node
             (flow_mapping
               (flow_pair
-                key: (flow_node (plain_scalar (string_scalar)))
-                value: (flow_node (plain_scalar (integer_scalar)))))))))))
+                key: (flow_node
+                  (plain_scalar
+                    (string_scalar)))
+                value: (flow_node
+                  (plain_scalar
+                    (integer_scalar)))))))))))
 
 ================================================================================
 Regression - plain YAML flow sequence still parses
 ================================================================================
 x: [1, 2, 3]
 --------------------------------------------------------------------------------
+
 (stream
   (document
     (block_node
       (block_mapping
         (block_mapping_pair
-          key: (flow_node (plain_scalar (string_scalar)))
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
           value: (flow_node
             (flow_sequence
-              (flow_node (plain_scalar (integer_scalar)))
-              (flow_node (plain_scalar (integer_scalar)))
-              (flow_node (plain_scalar (integer_scalar))))))))))
+              (flow_node
+                (plain_scalar
+                  (integer_scalar)))
+              (flow_node
+                (plain_scalar
+                  (integer_scalar)))
+              (flow_node
+                (plain_scalar
+                  (integer_scalar))))))))))
 
 ================================================================================
 Nunjucks comment with whitespace only
 ================================================================================
 {# #}
 --------------------------------------------------------------------------------
+
 (stream
   (nunjucks_comment
-    (nunjucks_comment_text)))
+    (nunjucks_delimiter)
+    (nunjucks_comment_text)
+    (nunjucks_delimiter)))
+
+================================================================================
+Bare interpolation as a block-mapping key
+================================================================================
+{{PropertyNameIsNunjucks}}: {{is_this}}
+--------------------------------------------------------------------------------
+
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (nunjucks_interpolation
+            (nunjucks_delimiter)
+            (nunjucks_expression
+              (nunjucks_identifier))
+            (nunjucks_delimiter))
+          value: (nunjucks_interpolation
+            (nunjucks_delimiter)
+            (nunjucks_expression
+              (nunjucks_identifier))
+            (nunjucks_delimiter)))))))
+
+================================================================================
+Single-quoted key with interpolation prefix and literal suffix
+================================================================================
+'{{TopicName}}Topic': hello
+--------------------------------------------------------------------------------
+
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node
+            (single_quote_scalar
+              (nunjucks_interpolation
+                (nunjucks_delimiter)
+                (nunjucks_expression
+                  (nunjucks_identifier))
+                (nunjucks_delimiter))))
+          value: (flow_node
+            (plain_scalar
+              (string_scalar))))))))
+
+================================================================================
+Indented if nested inside indented for, with !== operator
+================================================================================
+Environment:
+  Variables:
+    {% for name, value in environment %}
+      {% if value !== "" %}
+        "{{ name }}": !Sub "{{ value }}"
+      {% else %}
+        "{{ name }}": ""
+      {% endif %}
+    {% endfor %}
+--------------------------------------------------------------------------------
+
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (block_node
+            (block_mapping
+              (block_mapping_pair
+                key: (flow_node
+                  (plain_scalar
+                    (string_scalar)))
+                (nunjucks_statement
+                  (nunjucks_delimiter)
+                  (nunjucks_keyword)
+                  (nunjucks_expression
+                    (nunjucks_content)
+                    (nunjucks_identifier)
+                    (nunjucks_content)
+                    (nunjucks_identifier)
+                    (nunjucks_content)
+                    (nunjucks_identifier)
+                    (nunjucks_content)
+                    (nunjucks_identifier)
+                    (nunjucks_content))
+                  (nunjucks_delimiter))
+                (nunjucks_statement
+                  (nunjucks_delimiter)
+                  (nunjucks_keyword)
+                  (nunjucks_expression
+                    (nunjucks_content)
+                    (nunjucks_identifier)
+                    (nunjucks_content))
+                  (nunjucks_delimiter))
+                value: (block_node
+                  (block_mapping
+                    (block_mapping_pair
+                      key: (flow_node
+                        (double_quote_scalar
+                          (nunjucks_interpolation
+                            (nunjucks_delimiter)
+                            (nunjucks_expression
+                              (nunjucks_content)
+                              (nunjucks_identifier)
+                              (nunjucks_content))
+                            (nunjucks_delimiter))))
+                      value: (flow_node
+                        (tag)
+                        (double_quote_scalar
+                          (nunjucks_interpolation
+                            (nunjucks_delimiter)
+                            (nunjucks_expression
+                              (nunjucks_content)
+                              (nunjucks_identifier)
+                              (nunjucks_content))
+                            (nunjucks_delimiter)))))
+                    (nunjucks_statement
+                      (nunjucks_delimiter)
+                      (nunjucks_keyword)
+                      (nunjucks_expression
+                        (nunjucks_content))
+                      (nunjucks_delimiter))
+                    (block_mapping_pair
+                      key: (flow_node
+                        (double_quote_scalar
+                          (nunjucks_interpolation
+                            (nunjucks_delimiter)
+                            (nunjucks_expression
+                              (nunjucks_content)
+                              (nunjucks_identifier)
+                              (nunjucks_content))
+                            (nunjucks_delimiter))))
+                      value: (flow_node
+                        (double_quote_scalar)))
+                    (nunjucks_statement
+                      (nunjucks_delimiter)
+                      (nunjucks_keyword)
+                      (nunjucks_expression
+                        (nunjucks_content))
+                      (nunjucks_delimiter))
+                    (nunjucks_statement
+                      (nunjucks_delimiter)
+                      (nunjucks_keyword)
+                      (nunjucks_expression
+                        (nunjucks_content))
+                      (nunjucks_delimiter))))))))))))
+
+================================================================================
+Modulo operator inside interpolation is not mistaken for a closer
+================================================================================
+x: {{ a % b }}
+--------------------------------------------------------------------------------
+
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (nunjucks_interpolation
+            (nunjucks_delimiter)
+            (nunjucks_expression
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content))
+            (nunjucks_delimiter)))))))
+
+================================================================================
+Modulo operator inside statement is not mistaken for a closer
+================================================================================
+{% if x % 2 == 0 %}
+y: 1
+{% endif %}
+--------------------------------------------------------------------------------
+
+(stream
+  (nunjucks_statement
+    (nunjucks_delimiter)
+    (nunjucks_keyword)
+    (nunjucks_expression
+      (nunjucks_content)
+      (nunjucks_identifier)
+      (nunjucks_content))
+    (nunjucks_delimiter))
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (flow_node
+            (plain_scalar
+              (integer_scalar))))
+        (nunjucks_statement
+          (nunjucks_delimiter)
+          (nunjucks_keyword)
+          (nunjucks_expression
+            (nunjucks_content))
+          (nunjucks_delimiter))))))
+
+================================================================================
+Lone brace from an object literal inside interpolation is not mistaken for a closer
+================================================================================
+x: {{ obj.fn({a: 1}) }}
+--------------------------------------------------------------------------------
+
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (nunjucks_interpolation
+            (nunjucks_delimiter)
+            (nunjucks_expression
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content))
+            (nunjucks_delimiter)))))))
+
+================================================================================
+Hash inside comment text is not mistaken for a closer
+================================================================================
+{# note: # inside #}
+--------------------------------------------------------------------------------
+
+(stream
+  (nunjucks_comment
+    (nunjucks_delimiter)
+    (nunjucks_comment_text)
+    (nunjucks_delimiter)))
+
+================================================================================
+Regression - two separate lone-brace pairs in a single-quoted scalar
+================================================================================
+msg: '{ a } and { b }'
+--------------------------------------------------------------------------------
+
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (flow_node
+            (single_quote_scalar)))))))
+
+================================================================================
+Whitespace control on a statement ({%- ... -%})
+================================================================================
+{%- if x -%}
+y: 1
+{%- endif -%}
+--------------------------------------------------------------------------------
+
+(stream
+  (nunjucks_statement
+    (nunjucks_delimiter)
+    (nunjucks_keyword)
+    (nunjucks_expression
+      (nunjucks_content)
+      (nunjucks_identifier)
+      (nunjucks_content))
+    (nunjucks_delimiter))
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (flow_node
+            (plain_scalar
+              (integer_scalar))))
+        (nunjucks_statement
+          (nunjucks_delimiter)
+          (nunjucks_keyword)
+          (nunjucks_expression
+            (nunjucks_content))
+          (nunjucks_delimiter))))))
+
+================================================================================
+Whitespace control on an interpolation ({{- ... -}})
+================================================================================
+x: {{- y -}}
+--------------------------------------------------------------------------------
+
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (nunjucks_interpolation
+            (nunjucks_delimiter)
+            (nunjucks_expression
+              (nunjucks_content)
+              (nunjucks_identifier)
+              (nunjucks_content))
+            (nunjucks_delimiter)))))))
+
+================================================================================
+Whitespace control on a comment ({#- ... -#})
+================================================================================
+{#- comment -#}
+y: 1
+--------------------------------------------------------------------------------
+
+(stream
+  (nunjucks_comment
+    (nunjucks_delimiter)
+    (nunjucks_comment_text)
+    (nunjucks_delimiter))
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (flow_node
+            (plain_scalar
+              (integer_scalar))))))))
