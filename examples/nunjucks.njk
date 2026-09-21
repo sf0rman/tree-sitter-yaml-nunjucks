@@ -100,3 +100,112 @@ ExampleWithNunjucksProperty:
   Type: Something
   {{PropertyNameIsNunjucks}}: {{is this}}
   '{{TopicName}}Topic': hello
+
+
+{% if createExampleQueue %}
+  ExampleQueue:
+      Type: AWS::SQS::Queue
+      DeletionPolicy: RetainExceptOnCreate
+      UpdateReplacePolicy: Retain
+      Properties:
+        QueueName: !Sub "${AWS::StackName}-example-queue"
+        KmsMasterKeyId: !Ref KmsKey
+        MessageRetentionPeriod: !Ref exampleQueueMessageRetentionSeconds
+        VisibilityTimeout: !Ref exampleQueueVisibilityTimeoutSeconds
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt ExampleDlQueue.Arn
+          maxReceiveCount: !Ref exampleQueueMaxReceiveCount
+
+  ExampleDlQueue:
+      Type: AWS::SQS::Queue
+      DeletionPolicy: RetainExceptOnCreate
+      UpdateReplacePolicy: Retain
+      Properties:
+        QueueName: !Sub "${AWS::StackName}-example-queue-dlq"
+        KmsMasterKeyId: !Ref KmsKey
+        MessageRetentionPeriod: !Ref exampleQueueMessageRetentionSeconds
+
+  ExampleQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: s3.amazonaws.com
+              Action: sqs:SendMessage
+              Resource:
+                - !GetAtt ExampleQueue.Arn
+              Condition:
+                ArnLike:
+                  'aws:SourceArn': !Sub "arn:aws:s3:::${AWS::StackName}"
+                StringEquals:
+                  'aws:SourceAccount': !Ref AWS::AccountId
+        Queues:
+          - !Ref ExampleQueue
+{% endif %}
+
+{% if createTopics %}
+  {% for topic in createTopics %}
+  {{topic.nameRef}}:
+    Type: AWS::SNS::Topic
+    DeletionPolicy: RetainExceptOnCreate
+    Properties:
+      TopicName: !Sub  "${AWS::StackName}-{{topic.name}}"
+      DisplayName: !Sub "Notifications for new {{topic.prefix}} events in ${AWS::StackName}"
+      KmsMasterKeyId: !Ref KmsKey
+
+  '{{topic.nameRef}}Policy':
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: 'Allow S3 to publish messages'
+            Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action:
+              - sns:Publish
+            Resource: !Ref {{topic.nameRef}}
+            Condition:
+              ArnLike:
+                'aws:SourceArn': !Sub "arn:aws:s3:::${AWS::StackName}"
+              StringEquals:
+                'aws:SourceAccount': !Ref AWS::AccountId
+          - Sid: 'Allow SQS to subscribe to the topic'
+            Effect: Allow
+            Principal:
+              Service: sqs.amazonaws.com
+            Action:
+              - sns:Subscribe
+            Resource: !Ref {{topic.nameRef}}
+            Condition:
+              StringEquals:
+                'aws:SourceAccount': !Ref AWS::AccountId
+          - !If
+            - HasExtraPrincipals
+            - Sid: 'Allow services in other accounts to subscribe to the topic'
+              Effect: Allow
+              Principal:
+                  AWS: !Ref extraPrincipals
+              Action: sns:Subscribe
+              Resource: !Ref {{topic.nameRef}}
+            - !Ref AWS::NoValue
+    {% for permission in readPermissions %}
+          - Sid: '{{permission.sid}}'
+            Effect: Allow
+            Principal:
+              AWS:
+      {% for principal in permission.principals %}
+                - !Sub '{{ principal }}'
+      {% endfor %}
+            Action:
+              - sns:Subscribe
+            Resource: !Ref {{topic.nameRef}}
+    {% endfor %}
+      Topics:
+        - !Ref {{topic.nameRef}}
+  {% endfor %}
+{% endif %}

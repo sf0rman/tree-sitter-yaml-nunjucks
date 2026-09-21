@@ -775,3 +775,90 @@ y: 1
           value: (flow_node
             (plain_scalar
               (integer_scalar))))))))
+
+================================================================================
+Bare interpolation key dedenting past a deeply nested sibling resource
+================================================================================
+Resources:
+  FirstResource:
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+      Queues:
+        - Bar
+  {{topic.nameRef}}:
+    Type: AWS::SNS::Topic
+--------------------------------------------------------------------------------
+
+(stream
+  (document
+    (block_node
+      (block_mapping
+        (block_mapping_pair
+          key: (flow_node
+            (plain_scalar
+              (string_scalar)))
+          value: (block_node
+            (block_mapping
+              (block_mapping_pair
+                key: (flow_node
+                  (plain_scalar
+                    (string_scalar)))
+                value: (block_node
+                  (block_mapping
+                    (block_mapping_pair
+                      key: (flow_node
+                        (plain_scalar
+                          (string_scalar)))
+                      value: (block_node
+                        (block_mapping
+                          (block_mapping_pair
+                            key: (flow_node
+                              (plain_scalar
+                                (string_scalar)))
+                            value: (block_node
+                              (block_mapping
+                                (block_mapping_pair
+                                  key: (flow_node
+                                    (plain_scalar
+                                      (string_scalar)))
+                                  value: (block_node
+                                    (block_sequence
+                                      (block_sequence_item
+                                        (block_node
+                                          (block_mapping
+                                            (block_mapping_pair
+                                              key: (flow_node
+                                                (plain_scalar
+                                                  (string_scalar)))
+                                              value: (flow_node
+                                                (plain_scalar
+                                                  (string_scalar)))))))))))))
+                          (block_mapping_pair
+                            key: (flow_node
+                              (plain_scalar
+                                (string_scalar)))
+                            value: (block_node
+                              (block_sequence
+                                (block_sequence_item
+                                  (flow_node
+                                    (plain_scalar
+                                      (string_scalar)))))))))))))
+              (block_mapping_pair
+                key: (nunjucks_interpolation
+                  (nunjucks_delimiter)
+                  (nunjucks_expression
+                    (nunjucks_identifier)
+                    (nunjucks_content)
+                    (nunjucks_identifier))
+                  (nunjucks_delimiter))
+                value: (block_node
+                  (block_mapping
+                    (block_mapping_pair
+                      key: (flow_node
+                        (plain_scalar
+                          (string_scalar)))
+                      value: (flow_node
+                        (plain_scalar
+                          (string_scalar))))))))))))))

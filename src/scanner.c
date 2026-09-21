@@ -1159,6 +1159,21 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
     // Nunjucks opener, emit the opener directly instead of popping the indent stack.
     // njk_peek advances the lexer irreversibly past '{', so every post-peek outcome
     // (statement, comment, interpolation, flow-map, plain) is fully handled here.
+    //
+    // {{ interpolation gets different treatment from {%/{#: unlike statements and
+    // comments, an interpolation is real content (a value, or — since bare
+    // `{{ key }}:` became a valid mapping key — a key), so when a genuine dedent is
+    // needed to place it at the correct level (e.g. it follows a more deeply nested
+    // block that must first be closed), that dedent must actually happen — emitting
+    // NJK_INTERP_BGN without ever popping the indent stack left it out of sync,
+    // corrupting everything parsed afterward. The parser itself won't offer
+    // NJK_INTERP_BGN as valid here until enough BL pops have happened elsewhere to
+    // change its state, so on this call we may need to emit a BL instead — but we
+    // can't call mrk_end for it (njk_peek already destructively consumed the first
+    // '{' to distinguish this from {%/{#, and a BL must stay zero-width). Leaving
+    // mrk_end untouched (it was last set, unmoved, at the top of this scan() call)
+    // means the emitted BL still ends at the pre-peek position, and the next
+    // scan() call re-peeks '{' from scratch once the parser has caught up.
     bool bl_would_fire =
         valid_symbols[BL] && bgn_col <= cur_ind && !has_tab_ind &&
         (cur_ind == prt_ind && cur_ind_typ == IND_SEQ
@@ -1177,10 +1192,32 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             adv(scanner, lexer); njk_absorb_dash(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
             RET_SYM(NJK_CMT_BGN);                    // BL suppressed: comment is indent-transparent
         }
-        if (second == '{' && valid_symbols[NJK_INTERP_BGN]) {
-            MAY_UPD_IMP_COL();  // may be an implicit mapping key, e.g. {{ key }}: value
-            adv(scanner, lexer); njk_absorb_dash(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
-            RET_SYM(NJK_INTERP_BGN);                 // BL suppressed for line-leading interpolation
+        if (second == '{') {
+            // Prefer another dedent pop over emitting the interpolation while the
+            // indent stack hasn't actually caught up to this line's column yet.
+            // Both BL and NJK_INTERP_BGN can be simultaneously valid_symbols
+            // mid-pop — the grammar allows an interpolation as a flow value at
+            // practically any point a value is expected, regardless of column —
+            // but emitting NJK_INTERP_BGN before cur_ind reaches bgn_col would let
+            // a later MAY_PUSH_IMP_IND push bgn_col on top of a stack entry that's
+            // still deeper than it, corrupting the indent stack's monotonicity
+            // and silently dropping everything parsed afterward.
+            if (bgn_col < cur_ind && valid_symbols[BL]) {
+                POP_IND();
+                RET_SYM(BL);
+            }
+            if (valid_symbols[NJK_INTERP_BGN]) {
+                MAY_UPD_IMP_COL();  // may be an implicit mapping key, e.g. {{ key }}: value
+                adv(scanner, lexer); njk_absorb_dash(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
+                RET_SYM(NJK_INTERP_BGN);
+            }
+            if (valid_symbols[BL]) {
+                // Not ready yet — pop one level (see the comment above this block for
+                // why mrk_end is deliberately not called here) and let the next call
+                // re-peek '{' once the parser can accept the interpolation.
+                POP_IND();
+                RET_SYM(BL);
+            }
         }
         // Not a Nunjucks opener: we already advanced past '{'. Reproduce the flow-map
         // emission (mirror of the '{' dispatch ~1160-1180); otherwise mark end and fall

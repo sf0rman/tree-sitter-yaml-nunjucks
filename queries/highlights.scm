@@ -95,15 +95,13 @@
     "raw" "endraw" "verbatim" "endverbatim" "ignore" "missing"
     "recursive" "as" "with" "context" "endwith"))
 
-; nunjucks_identifier covers every other identifier in the expression body:
-; variable names, filter/function names, and mid-statement words. Default to
-; @variable, then override with @keyword for the word forms below by text (a
-; later pattern's capture wins over an earlier one for the same node).
-(nunjucks_identifier) @variable
-((nunjucks_identifier) @keyword
-  (#any-of? @keyword
-    "in" "and" "or" "not" "is" "if" "else"
-    "recursive" "as" "with" "context"))
+; nunjucks_identifier covers every identifier in the expression body: variable
+; names, member-access segments (topic.nameRef), filter/function names, and
+; mid-statement words (in/and/or/...). Captured as @keyword throughout so
+; template variables read as a distinct accent color (e.g. the purple many
+; themes use for Go's `return`) instead of blending in with YAML property
+; names, which use @property.
+(nunjucks_identifier) @keyword
 
 ; A nunjucks interpolation used as a mapping key (e.g. "{{ name }}": value) reads
 ; as the property name, same as any other key.
