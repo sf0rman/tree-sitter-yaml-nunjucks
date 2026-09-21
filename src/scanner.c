@@ -70,6 +70,7 @@ typedef enum {
     NJK_CMT_END,     // #}
     NJK_CONTENT,     // raw content inside {{ }} or {% %} (everything before the closer)
     NJK_KEYWORD,     // leading identifier word inside {% %} (e.g. "if", "for", "endfor")
+    NJK_IDENTIFIER,  // any other identifier inside {{ }} or {% %} (variable/filter names, "in", ...)
 
     ERR_REC,
 } TokenType;
@@ -296,6 +297,14 @@ static inline bool is_ns_word_char(int32_t c) {
     return c == '-' || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
+static inline bool is_njk_ident_start(int32_t c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+
+static inline bool is_njk_ident_cont(int32_t c) {
+    return is_njk_ident_start(c) || (c >= '0' && c <= '9');
+}
+
 static inline bool is_nb_json(int32_t c) { return c == 0x09 || (c >= 0x20 && c <= 0x10ffff); }
 
 static inline bool is_nb_double_char(int32_t c) { return is_nb_json(c) && c != '\\' && c != '"'; }
@@ -338,6 +347,16 @@ static inline bool is_ns_anchor_char(int32_t c) { return is_ns_char(c) && !is_c_
 static inline int32_t njk_peek(TSLexer *lexer) {
     lexer->advance(lexer, false);
     return lexer->lookahead;
+}
+
+// Absorb a Nunjucks whitespace-control '-' immediately following an opening
+// delimiter ('{{-', '{%-', '{#-') into the same token, unconditionally consuming
+// it. Called right before mrk_end()/RET_SYM() at an opener site, so there is
+// nothing to back out of if no '-' is present.
+static inline void njk_absorb_dash(Scanner *scanner, TSLexer *lexer) {
+    if (lexer->lookahead == '-') {
+        adv(scanner, lexer);
+    }
 }
 
 static char scn_uri_esc(Scanner *scanner, TSLexer *lexer) {
@@ -671,7 +690,10 @@ static bool scn_dqt_str_cnt(Scanner *scanner, TSLexer *lexer, TSSymbol result_sy
         return false;
     }
     // If the string content starts immediately with '{{', let the interpolation scanner
-    // handle it (return false so the '{' dispatch at the call site fires instead).
+    // handle it (return false so the '{' dispatch at the call site fires instead). A lone
+    // '{' here (not '{{') is handled by that same '{' dispatch — see njk_resume_dqt_cnt —
+    // because confirming the second char would require an irreversible lexer->advance(),
+    // and we must not consume anything before returning false from this entry check.
     if (lexer->lookahead == '{' && valid_symbols[NJK_INTERP_BGN]) {
         return false;
     }
@@ -705,7 +727,8 @@ static bool scn_sqt_str_cnt(Scanner *scanner, TSLexer *lexer, TSSymbol result_sy
     if (!is_nb_single_char(lexer->lookahead)) {
         return false;
     }
-    // Same '{{'-break logic as double-quote: if content starts with '{{', step aside.
+    // Same '{{'-break logic as double-quote (see scn_dqt_str_cnt for why a lone '{'
+    // is handled by the caller's '{' dispatch instead of being confirmed here).
     if (lexer->lookahead == '{' && valid_symbols[NJK_INTERP_BGN]) {
         return false;
     }
@@ -725,6 +748,49 @@ static bool scn_sqt_str_cnt(Scanner *scanner, TSLexer *lexer, TSSymbol result_sy
                 RET_SYM(result_symbol);
             }
             // Only one '{' — not an interpolation; include it and continue.
+            mrk_end(scanner, lexer);
+            continue;
+        }
+        adv(scanner, lexer);
+    }
+    mrk_end(scanner, lexer);
+    RET_SYM(result_symbol);
+}
+
+// Resume double/single-quoted string content scanning after the caller's main '{'
+// dispatch has already peeked past a lone '{' (confirmed NOT to start a real '{{'
+// interpolation) via njk_peek. The caller must have called mrk_end() right before
+// that peek so the emitted token includes the lone '{'; lexer->lookahead here is
+// therefore already the character immediately after it. Mirrors the tail of
+// scn_dqt_str_cnt/scn_sqt_str_cnt — this exists separately because that second
+// character cannot be un-peeked, so this path can never itself return false.
+static bool njk_resume_dqt_cnt(Scanner *scanner, TSLexer *lexer, TSSymbol result_symbol,
+                                const bool *valid_symbols) {
+    while (is_nb_double_char(lexer->lookahead)) {
+        if (lexer->lookahead == '{' && valid_symbols[NJK_INTERP_BGN]) {
+            mrk_end(scanner, lexer);
+            adv(scanner, lexer);
+            if (lexer->lookahead == '{') {
+                RET_SYM(result_symbol);
+            }
+            mrk_end(scanner, lexer);
+            continue;
+        }
+        adv(scanner, lexer);
+    }
+    mrk_end(scanner, lexer);
+    RET_SYM(result_symbol);
+}
+
+static bool njk_resume_sqt_cnt(Scanner *scanner, TSLexer *lexer, TSSymbol result_symbol,
+                                const bool *valid_symbols) {
+    while (is_nb_single_char(lexer->lookahead)) {
+        if (lexer->lookahead == '{' && valid_symbols[NJK_INTERP_BGN]) {
+            mrk_end(scanner, lexer);
+            adv(scanner, lexer);
+            if (lexer->lookahead == '{') {
+                RET_SYM(result_symbol);
+            }
             mrk_end(scanner, lexer);
             continue;
         }
@@ -919,23 +985,81 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
             // Not an identifier start — fall through to NJK_CONTENT.
         }
 
+        // Identifier phase: variable names, filter names, mid-statement words (in, and,
+        // or, is, ...) — anywhere in the expression, not just right after {% (unlike
+        // NJK_KEYWORD above, which is specifically the leading word of a statement tag).
+        // highlights.scm can still special-case specific identifier text via #any-of?.
+        if (valid_symbols[NJK_IDENTIFIER] && is_njk_ident_start(lexer->lookahead)) {
+            mrk_end(scanner, lexer);  // mark start of identifier token
+            do {
+                adv(scanner, lexer);
+                mrk_end(scanner, lexer);
+            } while (is_njk_ident_cont(lexer->lookahead));
+            RET_SYM(NJK_IDENTIFIER);
+        }
+
         if (valid_symbols[NJK_CONTENT]) {
             // Consume everything until the two-char closing delimiter.
             bool has_content = false;
             while (lexer->lookahead != 0) {
                 int32_t c = lexer->lookahead;
-                // Peek for two-char closers
-                if ((c == '}' && valid_symbols[NJK_INTERP_END]) ||
-                    (c == '%' && valid_symbols[NJK_STMT_END]) ||
-                    (c == '#' && valid_symbols[NJK_CMT_END])) {
-                    break; // Stop before the closing delimiter
+                // Stop before an identifier so it can be tokenized separately.
+                if (valid_symbols[NJK_IDENTIFIER] && is_njk_ident_start(c)) {
+                    break;
                 }
                 if (c == '}' || c == '%' || c == '#') {
-                    // Could be part of a closer — peek ahead
+                    // Could be the start of a two-char closer — a single occurrence
+                    // of the char is not enough (e.g. the '%' in "x % 2", or the
+                    // lone '}' in "{a: 1}"); peek the next char before deciding.
                     adv(scanner, lexer);
-                    if (lexer->lookahead == '}') {
-                        // Found '}}'  or '%}' or '#}' — back up
+                    bool is_real_closer =
+                        lexer->lookahead == '}' &&
+                        ((c == '}' && valid_symbols[NJK_INTERP_END]) ||
+                         (c == '%' && valid_symbols[NJK_STMT_END]) ||
+                         (c == '#' && valid_symbols[NJK_CMT_END]));
+                    if (is_real_closer) {
+                        if (!has_content) {
+                            // Nothing to emit as NJK_CONTENT (repeat1 means this loop can
+                            // run again with zero characters before the closer). We've
+                            // already committed the 2-char peek via adv(), so "return
+                            // false" here would leave the lexer one char into the closer
+                            // with no token emitted — finish the closer ourselves instead.
+                            adv(scanner, lexer);
+                            mrk_end(scanner, lexer);
+                            if (scanner->njk_depth > 0) scanner->njk_depth--;
+                            RET_SYM(c == '}' ? NJK_INTERP_END : c == '%' ? NJK_STMT_END : NJK_CMT_END);
+                        }
+                        // Found the real closer '}}' / '%}' / '#}'. mrk_end was not
+                        // called for this char, so the content token still ends right
+                        // before it; the closer itself is picked up on the next call.
                         break;
+                    }
+                    // False alarm — both peeked characters are ordinary content.
+                    mrk_end(scanner, lexer);
+                    has_content = true;
+                    continue;
+                }
+                if (c == '-') {
+                    // Whitespace control: could be the start of '-%}' / '-}}' / '-#}'.
+                    // Confirm all three characters before excluding the '-' from content.
+                    adv(scanner, lexer);
+                    int32_t c2 = lexer->lookahead;
+                    bool maybe_closer = (c2 == '%' && valid_symbols[NJK_STMT_END]) ||
+                                        (c2 == '}' && valid_symbols[NJK_INTERP_END]) ||
+                                        (c2 == '#' && valid_symbols[NJK_CMT_END]);
+                    if (maybe_closer) {
+                        adv(scanner, lexer);
+                        if (lexer->lookahead == '}') {
+                            if (!has_content) {
+                                // Same reasoning as the '}'/'%'/'#' case above: finish the
+                                // closer here rather than returning false mid-peek.
+                                adv(scanner, lexer);
+                                mrk_end(scanner, lexer);
+                                if (scanner->njk_depth > 0) scanner->njk_depth--;
+                                RET_SYM(c2 == '%' ? NJK_STMT_END : c2 == '}' ? NJK_INTERP_END : NJK_CMT_END);
+                            }
+                            break; // confirmed; mrk_end stays before the '-'
+                        }
                     }
                     mrk_end(scanner, lexer);
                     has_content = true;
@@ -956,7 +1080,11 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
         bool is_closing =
             (lk == '}' && valid_symbols[NJK_INTERP_END]) ||
             (lk == '%' && valid_symbols[NJK_STMT_END]) ||
-            (lk == '#' && valid_symbols[NJK_CMT_END]);
+            (lk == '#' && valid_symbols[NJK_CMT_END]) ||
+            // Whitespace control: '-%}' / '-}}' / '-#}' — the dedicated '-' dispatch
+            // further down confirms and consumes the full three-char closer.
+            (lk == '-' && (valid_symbols[NJK_INTERP_END] || valid_symbols[NJK_STMT_END] ||
+                            valid_symbols[NJK_CMT_END]));
         if (!is_closing) {
             return false;
         }
@@ -1042,15 +1170,16 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
         int32_t second = njk_peek(lexer);            // advance past first '{'
 
         if (second == '%' && valid_symbols[NJK_STMT_BGN]) {
-            adv(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
+            adv(scanner, lexer); njk_absorb_dash(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
             RET_SYM(NJK_STMT_BGN);                   // BL suppressed: statement is indent-transparent
         }
         if (second == '#' && valid_symbols[NJK_CMT_BGN]) {
-            adv(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
+            adv(scanner, lexer); njk_absorb_dash(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
             RET_SYM(NJK_CMT_BGN);                    // BL suppressed: comment is indent-transparent
         }
         if (second == '{' && valid_symbols[NJK_INTERP_BGN]) {
-            adv(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
+            MAY_UPD_IMP_COL();  // may be an implicit mapping key, e.g. {{ key }}: value
+            adv(scanner, lexer); njk_absorb_dash(scanner, lexer); mrk_end(scanner, lexer); scanner->njk_depth++;
             RET_SYM(NJK_INTERP_BGN);                 // BL suppressed for line-leading interpolation
         }
         // Not a Nunjucks opener: we already advanced past '{'. Reproduce the flow-map
@@ -1198,19 +1327,23 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
         if (want_njk) {
             int32_t second = njk_peek(lexer); // advances past first '{', no mrk_end
             if (second == '{' && valid_symbols[NJK_INTERP_BGN]) {
+                MAY_UPD_IMP_COL();  // may be an implicit mapping key, e.g. {{ key }}: value
                 adv(scanner, lexer); // consume second '{'
+                njk_absorb_dash(scanner, lexer);
                 mrk_end(scanner, lexer);
                 scanner->njk_depth++;
                 RET_SYM(NJK_INTERP_BGN);
             }
             if (second == '%' && valid_symbols[NJK_STMT_BGN]) {
                 adv(scanner, lexer); // consume '%'
+                njk_absorb_dash(scanner, lexer);
                 mrk_end(scanner, lexer);
                 scanner->njk_depth++;
                 RET_SYM(NJK_STMT_BGN);
             }
             if (second == '#' && valid_symbols[NJK_CMT_BGN]) {
                 adv(scanner, lexer); // consume '#'
+                njk_absorb_dash(scanner, lexer);
                 mrk_end(scanner, lexer);
                 scanner->njk_depth++;
                 RET_SYM(NJK_CMT_BGN);
@@ -1231,6 +1364,25 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
                 MAY_UPD_IMP_COL();
                 mrk_end(scanner, lexer);
                 RET_SYM(B_FLW_MAP_BGN)
+            }
+            // Still not a nunjucks opener or a flow-map-begin: this is a lone '{' inside
+            // already-open quoted-string content (e.g. "{a: 1}" or 'braces {like} this').
+            // scn_dqt_str_cnt/scn_sqt_str_cnt deliberately bail out on ANY '{' without
+            // peeking (an unconfirmable '{{' peek can't be undone), so resume their
+            // content loop here using the peek we already committed to. mrk_end was
+            // never moved since scan() started, so it still marks the position right
+            // before this '{', which is exactly where the content token must begin.
+            if (valid_symbols[R_DQT_STR_CTN] && is_r) {
+                return njk_resume_dqt_cnt(scanner, lexer, R_DQT_STR_CTN, valid_symbols);
+            }
+            if (valid_symbols[BR_DQT_STR_CTN] && is_br) {
+                return njk_resume_dqt_cnt(scanner, lexer, BR_DQT_STR_CTN, valid_symbols);
+            }
+            if (valid_symbols[R_SQT_STR_CTN] && is_r) {
+                return njk_resume_sqt_cnt(scanner, lexer, R_SQT_STR_CTN, valid_symbols);
+            }
+            if (valid_symbols[BR_SQT_STR_CTN] && is_br) {
+                return njk_resume_sqt_cnt(scanner, lexer, BR_SQT_STR_CTN, valid_symbols);
             }
             // Nothing matched — but we advanced. Mark end to prevent corrupt state,
             // then fall through to plain-scalar (cur_col - bgn_col == 1, which is handled).
@@ -1456,6 +1608,24 @@ static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
                     mrk_end(scanner, lexer);
                     RET_SYM(BR_FLW_NJV_BGN);
                 }
+            }
+        }
+    } else if (lexer->lookahead == '-' &&
+               (valid_symbols[NJK_STMT_END] || valid_symbols[NJK_INTERP_END] || valid_symbols[NJK_CMT_END])) {
+        // Nunjucks whitespace control: '-%}' / '-}}' / '-#}' closes a tag, absorbing
+        // the trim marker into the closing delimiter token (mirrors the plain '%}' /
+        // '}}' / '#}' closers above).
+        adv(scanner, lexer);
+        int32_t second = lexer->lookahead;
+        if ((second == '%' && valid_symbols[NJK_STMT_END]) ||
+            (second == '}' && valid_symbols[NJK_INTERP_END]) ||
+            (second == '#' && valid_symbols[NJK_CMT_END])) {
+            adv(scanner, lexer);
+            if (lexer->lookahead == '}') {
+                adv(scanner, lexer);
+                mrk_end(scanner, lexer);
+                if (scanner->njk_depth > 0) scanner->njk_depth--;
+                RET_SYM(second == '%' ? NJK_STMT_END : second == '}' ? NJK_INTERP_END : NJK_CMT_END);
             }
         }
     } else if (lexer->lookahead == '-') {

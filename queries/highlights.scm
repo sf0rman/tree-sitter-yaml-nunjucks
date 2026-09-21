@@ -79,11 +79,12 @@
 ] @punctuation.special
 
 ; Nunjucks template syntax
-(nunjucks_interpolation) @punctuation.special
-(nunjucks_statement) @punctuation.special
-; nunjucks_keyword captures the first word of {% %} statements.
-; "in" and other mid-statement words appear in nunjucks_expression (@embedded) —
-; editors may highlight them via a secondary injection or regex scope.
+; Delimiters ({{ }}, {% %}, {# #}, including any whitespace-control '-') are their
+; own node, captured directly instead of painting the whole construct and relying
+; on children to override it.
+(nunjucks_delimiter) @punctuation.special
+
+; nunjucks_keyword is specifically the leading word of a {% %} statement (if/for/...).
 ((nunjucks_keyword) @keyword
   (#any-of? @keyword
     "if" "elif" "else" "endif"
@@ -93,5 +94,22 @@
     "from" "macro" "endmacro" "call" "endcall" "filter" "endfilter"
     "raw" "endraw" "verbatim" "endverbatim" "ignore" "missing"
     "recursive" "as" "with" "context" "endwith"))
+
+; nunjucks_identifier covers every other identifier in the expression body:
+; variable names, filter/function names, and mid-statement words. Default to
+; @variable, then override with @keyword for the word forms below by text (a
+; later pattern's capture wins over an earlier one for the same node).
+(nunjucks_identifier) @variable
+((nunjucks_identifier) @keyword
+  (#any-of? @keyword
+    "in" "and" "or" "not" "is" "if" "else"
+    "recursive" "as" "with" "context"))
+
+; A nunjucks interpolation used as a mapping key (e.g. "{{ name }}": value) reads
+; as the property name, same as any other key.
+(block_mapping_pair key: (nunjucks_interpolation) @property)
+(flow_pair key: (nunjucks_interpolation) @property)
+
 (nunjucks_comment) @comment
-(nunjucks_expression) @embedded
+; nunjucks_content is raw operator/punctuation/whitespace text with no further
+; structure — left uncaptured so it renders in the default foreground.

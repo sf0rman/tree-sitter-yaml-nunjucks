@@ -95,3 +95,8 @@ Something:
               "{{ name }}": ""
             {% endif %}
           {% endfor %}
+
+ExampleWithNunjucksProperty:
+  Type: Something
+  {{PropertyNameIsNunjucks}}: {{is this}}
+  '{{TopicName}}Topic': hello

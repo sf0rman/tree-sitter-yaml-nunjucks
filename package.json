@@ -52,7 +52,7 @@
     "install": "node-gyp-build",
     "prestart": "tree-sitter build --wasm",
     "start": "tree-sitter playground",
-    "test": "node --test bindings/node/*_test.js"
+    "test": "tree-sitter test"
   },
   "publishConfig": {
     "access": "public"
@@ -62,7 +62,9 @@
       "scope": "text.yaml",
       "file-types": [
         "yml",
-        "yaml"
+        "yaml",
+        "njk",
+        "j2"
       ],
       "injection-regex": "^ya?ml$",
       "highlights": "queries/highlights.scm",
